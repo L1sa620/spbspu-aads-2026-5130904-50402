@@ -16,6 +16,8 @@ private:
   {
     Node();
     Node(const Key& key, const Value& value);
+    Node(const Node&) = delete;
+    Node& operator=(const Node&) = delete;
 
     std::pair< Key, Value > data;
     Node* parent;
@@ -66,6 +68,9 @@ public:
   void clear() noexcept;
 
 private:
+  Node* findNode(const Key& key) const noexcept;
+  static void deleteSubtree(Node* node) noexcept;
+
   Node fake_;
   size_t size_;
   Compare cmp_;
@@ -92,11 +97,7 @@ BSTree< Key, Value, Compare >::BSTree():
   fake_(),
   size_(0),
   cmp_()
-{
-  fake_.parent = nullptr;
-  fake_.left = nullptr;
-  fake_.right = nullptr;
-}
+{}
 
 template< class Key, class Value, class Compare >
 BSTree< Key, Value, Compare >::BSTree(const BSTree&):
@@ -145,9 +146,46 @@ size_t BSTree< Key, Value, Compare >::size() const noexcept
 }
 
 template< class Key, class Value, class Compare >
-void BSTree< Key, Value, Compare >::push(const Key&, const Value&)
+void BSTree< Key, Value, Compare >::push(const Key& key, const Value& value)
 {
-  throw std::logic_error("not implemented");
+  Node* parent = &fake_;
+  Node* current = fake_.left;
+
+  while (current != nullptr)
+  {
+    parent = current;
+
+    if (cmp_(key, current->data.first))
+    {
+      current = current->left;
+    }
+    else if (cmp_(current->data.first, key))
+    {
+      current = current->right;
+    }
+    else
+    {
+      throw std::logic_error("key already exists");
+    }
+  }
+
+  Node* node = new Node(key, value);
+  node->parent = parent;
+
+  if (parent == &fake_)
+  {
+    fake_.left = node;
+  }
+  else if (cmp_(key, parent->data.first))
+  {
+    parent->left = node;
+  }
+  else
+  {
+    parent->right = node;
+  }
+
+  ++size_;
 }
 
 template< class Key, class Value, class Compare >
@@ -157,28 +195,80 @@ Value BSTree< Key, Value, Compare >::drop(const Key&)
 }
 
 template< class Key, class Value, class Compare >
-bool BSTree< Key, Value, Compare >::has(const Key&) const
+bool BSTree< Key, Value, Compare >::has(const Key& key) const
 {
-  return false;
+  return findNode(key) != nullptr;
 }
 
 template< class Key, class Value, class Compare >
-Value& BSTree< Key, Value, Compare >::at(const Key&)
+Value& BSTree< Key, Value, Compare >::at(const Key& key)
 {
-  throw std::logic_error("not implemented");
+  Node* node = findNode(key);
+
+  if (node == nullptr)
+  {
+    throw std::logic_error("key not found");
+  }
+
+  return node->data.second;
 }
 
 template< class Key, class Value, class Compare >
-const Value& BSTree< Key, Value, Compare >::at(const Key&) const
+const Value& BSTree< Key, Value, Compare >::at(const Key& key) const
 {
-  throw std::logic_error("not implemented");
+  Node* node = findNode(key);
+
+  if (node == nullptr)
+  {
+    throw std::logic_error("key not found");
+  }
+
+  return node->data.second;
 }
 
 template< class Key, class Value, class Compare >
 void BSTree< Key, Value, Compare >::clear() noexcept
 {
+  deleteSubtree(fake_.left);
   fake_.left = nullptr;
   size_ = 0;
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node* BSTree< Key, Value, Compare >::findNode(const Key& key) const noexcept
+{
+  Node* current = fake_.left;
+
+  while (current != nullptr)
+  {
+    if (cmp_(key, current->data.first))
+    {
+      current = current->left;
+    }
+    else if (cmp_(current->data.first, key))
+    {
+      current = current->right;
+    }
+    else
+    {
+      return current;
+    }
+  }
+
+  return nullptr;
+}
+
+template< class Key, class Value, class Compare >
+void BSTree< Key, Value, Compare >::deleteSubtree(Node* node) noexcept
+{
+  if (node == nullptr)
+  {
+    return;
+  }
+
+  deleteSubtree(node->left);
+  deleteSubtree(node->right);
+  delete node;
 }
 }
 
