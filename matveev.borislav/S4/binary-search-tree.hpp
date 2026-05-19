@@ -35,6 +35,8 @@ public:
 
   public:
     Iterator();
+    Iterator(const Iterator&) = default;
+    Iterator& operator=(const Iterator&) = default;
 
     std::pair< Key, Value >& operator*() const;
     std::pair< Key, Value >* operator->() const;
@@ -60,6 +62,8 @@ public:
 
   public:
     ConstIterator();
+    ConstIterator(const ConstIterator&) = default;
+    ConstIterator& operator=(const ConstIterator&) = default;
     ConstIterator(const Iterator& iter);
 
     const std::pair< Key, Value >& operator*() const;
@@ -120,9 +124,13 @@ public:
 
 private:
   Node* findNode(const Key& key) const noexcept;
+  void transplant(Node* old_node, Node* new_node) noexcept;
+
   static Node* minNode(Node* node, Node* fake) noexcept;
   static Node* maxNode(Node* node, Node* fake) noexcept;
+  static size_t heightNode(Node* node) noexcept;
   static void deleteSubtree(Node* node) noexcept;
+  static Node* copySubtree(Node* node, Node* parent);
 
   Node fake_;
   size_t size_;
@@ -329,16 +337,32 @@ BSTree< Key, Value, Compare >::BSTree():
 {}
 
 template< class Key, class Value, class Compare >
-BSTree< Key, Value, Compare >::BSTree(const BSTree&):
-  BSTree()
+BSTree< Key, Value, Compare >::BSTree(const BSTree& other):
+  fake_(),
+  size_(0),
+  cmp_(other.cmp_)
 {
-  throw std::logic_error("not implemented");
+  fake_.left = copySubtree(other.fake_.left, &fake_);
+  size_ = other.size_;
 }
 
 template< class Key, class Value, class Compare >
-BSTree< Key, Value, Compare >::BSTree(BSTree&&) noexcept:
-  BSTree()
-{}
+BSTree< Key, Value, Compare >::BSTree(BSTree&& other) noexcept:
+  fake_(),
+  size_(0),
+  cmp_(other.cmp_)
+{
+  fake_.left = other.fake_.left;
+
+  if (fake_.left != nullptr)
+  {
+    fake_.left->parent = &fake_;
+  }
+
+  size_ = other.size_;
+  other.fake_.left = nullptr;
+  other.size_ = 0;
+}
 
 template< class Key, class Value, class Compare >
 BSTree< Key, Value, Compare >::~BSTree()
@@ -347,20 +371,60 @@ BSTree< Key, Value, Compare >::~BSTree()
 }
 
 template< class Key, class Value, class Compare >
-BSTree< Key, Value, Compare >& BSTree< Key, Value, Compare >::operator=(const BSTree&)
+BSTree< Key, Value, Compare >& BSTree< Key, Value, Compare >::operator=(const BSTree& other)
 {
-  throw std::logic_error("not implemented");
-}
+  if (this != &other)
+  {
+    BSTree copy(other);
+    swap(copy);
+  }
 
-template< class Key, class Value, class Compare >
-BSTree< Key, Value, Compare >& BSTree< Key, Value, Compare >::operator=(BSTree&&) noexcept
-{
   return *this;
 }
 
 template< class Key, class Value, class Compare >
-void BSTree< Key, Value, Compare >::swap(BSTree&) noexcept
-{}
+BSTree< Key, Value, Compare >& BSTree< Key, Value, Compare >::operator=(BSTree&& other) noexcept
+{
+  if (this != &other)
+  {
+    clear();
+
+    fake_.left = other.fake_.left;
+
+    if (fake_.left != nullptr)
+    {
+      fake_.left->parent = &fake_;
+    }
+
+    size_ = other.size_;
+    cmp_ = other.cmp_;
+
+    other.fake_.left = nullptr;
+    other.size_ = 0;
+  }
+
+  return *this;
+}
+
+template< class Key, class Value, class Compare >
+void BSTree< Key, Value, Compare >::swap(BSTree& other) noexcept
+{
+  using std::swap;
+
+  swap(fake_.left, other.fake_.left);
+  swap(size_, other.size_);
+  swap(cmp_, other.cmp_);
+
+  if (fake_.left != nullptr)
+  {
+    fake_.left->parent = &fake_;
+  }
+
+  if (other.fake_.left != nullptr)
+  {
+    other.fake_.left->parent = &other.fake_;
+  }
+}
 
 template< class Key, class Value, class Compare >
 bool BSTree< Key, Value, Compare >::empty() const noexcept
@@ -418,9 +482,45 @@ void BSTree< Key, Value, Compare >::push(const Key& key, const Value& value)
 }
 
 template< class Key, class Value, class Compare >
-Value BSTree< Key, Value, Compare >::drop(const Key&)
+Value BSTree< Key, Value, Compare >::drop(const Key& key)
 {
-  throw std::logic_error("not implemented");
+  Node* node = findNode(key);
+
+  if (node == nullptr)
+  {
+    throw std::logic_error("key not found");
+  }
+
+  Value result = node->data.second;
+
+  if (node->left == nullptr)
+  {
+    transplant(node, node->right);
+  }
+  else if (node->right == nullptr)
+  {
+    transplant(node, node->left);
+  }
+  else
+  {
+    Node* replacement = minNode(node->right, &fake_);
+
+    if (replacement->parent != node)
+    {
+      transplant(replacement, replacement->right);
+      replacement->right = node->right;
+      replacement->right->parent = replacement;
+    }
+
+    transplant(node, replacement);
+    replacement->left = node->left;
+    replacement->left->parent = replacement;
+  }
+
+  delete node;
+  --size_;
+
+  return result;
 }
 
 template< class Key, class Value, class Compare >
@@ -482,13 +582,15 @@ typename BSTree< Key, Value, Compare >::ConstIterator BSTree< Key, Value, Compar
 template< class Key, class Value, class Compare >
 typename BSTree< Key, Value, Compare >::ConstIterator BSTree< Key, Value, Compare >::cbegin() const noexcept
 {
-  return ConstIterator(minNode(fake_.left, const_cast< Node* >(&fake_)), const_cast< Node* >(&fake_));
+  Node* fake = const_cast< Node* >(&fake_);
+  return ConstIterator(minNode(fake_.left, fake), fake);
 }
 
 template< class Key, class Value, class Compare >
 typename BSTree< Key, Value, Compare >::ConstIterator BSTree< Key, Value, Compare >::cend() const noexcept
 {
-  return ConstIterator(const_cast< Node* >(&fake_), const_cast< Node* >(&fake_));
+  Node* fake = const_cast< Node* >(&fake_);
+  return ConstIterator(fake, fake);
 }
 
 template< class Key, class Value, class Compare >
@@ -501,9 +603,108 @@ typename BSTree< Key, Value, Compare >::Iterator BSTree< Key, Value, Compare >::
 template< class Key, class Value, class Compare >
 typename BSTree< Key, Value, Compare >::ConstIterator BSTree< Key, Value, Compare >::find(const Key& key) const noexcept
 {
-  Node* node = findNode(key);
   Node* fake = const_cast< Node* >(&fake_);
+  Node* node = findNode(key);
   return ConstIterator(node == nullptr ? fake : node, fake);
+}
+
+template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::height() const noexcept
+{
+  return heightNode(fake_.left);
+}
+
+template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::height(ConstIterator pos) const noexcept
+{
+  if (pos.node_ == const_cast< Node* >(&fake_))
+  {
+    return 0;
+  }
+
+  return heightNode(pos.node_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Iterator BSTree< Key, Value, Compare >::rotateLeft(Iterator rising)
+{
+  Node* node = rising.node_;
+
+  if (node == &fake_ || node == nullptr || node->parent == nullptr)
+  {
+    throw std::logic_error("invalid rotation");
+  }
+
+  Node* parent = node->parent;
+
+  if (parent == &fake_ || parent->right != node)
+  {
+    throw std::logic_error("invalid rotation");
+  }
+
+  Node* grandparent = parent->parent;
+  parent->right = node->left;
+
+  if (node->left != nullptr)
+  {
+    node->left->parent = parent;
+  }
+
+  node->left = parent;
+  parent->parent = node;
+  node->parent = grandparent;
+
+  if (grandparent->left == parent)
+  {
+    grandparent->left = node;
+  }
+  else
+  {
+    grandparent->right = node;
+  }
+
+  return Iterator(parent, &fake_);
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Iterator BSTree< Key, Value, Compare >::rotateRight(Iterator rising)
+{
+  Node* node = rising.node_;
+
+  if (node == &fake_ || node == nullptr || node->parent == nullptr)
+  {
+    throw std::logic_error("invalid rotation");
+  }
+
+  Node* parent = node->parent;
+
+  if (parent == &fake_ || parent->left != node)
+  {
+    throw std::logic_error("invalid rotation");
+  }
+
+  Node* grandparent = parent->parent;
+  parent->left = node->right;
+
+  if (node->right != nullptr)
+  {
+    node->right->parent = parent;
+  }
+
+  node->right = parent;
+  parent->parent = node;
+  node->parent = grandparent;
+
+  if (grandparent->left == parent)
+  {
+    grandparent->left = node;
+  }
+  else
+  {
+    grandparent->right = node;
+  }
+
+  return Iterator(parent, &fake_);
 }
 
 template< class Key, class Value, class Compare >
@@ -539,6 +740,24 @@ typename BSTree< Key, Value, Compare >::Node* BSTree< Key, Value, Compare >::fin
 }
 
 template< class Key, class Value, class Compare >
+void BSTree< Key, Value, Compare >::transplant(Node* old_node, Node* new_node) noexcept
+{
+  if (old_node->parent->left == old_node)
+  {
+    old_node->parent->left = new_node;
+  }
+  else
+  {
+    old_node->parent->right = new_node;
+  }
+
+  if (new_node != nullptr)
+  {
+    new_node->parent = old_node->parent;
+  }
+}
+
+template< class Key, class Value, class Compare >
 typename BSTree< Key, Value, Compare >::Node* BSTree< Key, Value, Compare >::minNode(Node* node, Node* fake) noexcept
 {
   if (node == nullptr)
@@ -571,6 +790,20 @@ typename BSTree< Key, Value, Compare >::Node* BSTree< Key, Value, Compare >::max
 }
 
 template< class Key, class Value, class Compare >
+size_t BSTree< Key, Value, Compare >::heightNode(Node* node) noexcept
+{
+  if (node == nullptr)
+  {
+    return 0;
+  }
+
+  size_t left_height = heightNode(node->left);
+  size_t right_height = heightNode(node->right);
+
+  return left_height > right_height ? left_height + 1 : right_height + 1;
+}
+
+template< class Key, class Value, class Compare >
 void BSTree< Key, Value, Compare >::deleteSubtree(Node* node) noexcept
 {
   if (node == nullptr)
@@ -581,6 +814,31 @@ void BSTree< Key, Value, Compare >::deleteSubtree(Node* node) noexcept
   deleteSubtree(node->left);
   deleteSubtree(node->right);
   delete node;
+}
+
+template< class Key, class Value, class Compare >
+typename BSTree< Key, Value, Compare >::Node* BSTree< Key, Value, Compare >::copySubtree(Node* node, Node* parent)
+{
+  if (node == nullptr)
+  {
+    return nullptr;
+  }
+
+  Node* result = new Node(node->data.first, node->data.second);
+  result->parent = parent;
+
+  try
+  {
+    result->left = copySubtree(node->left, result);
+    result->right = copySubtree(node->right, result);
+  }
+  catch (...)
+  {
+    deleteSubtree(result);
+    throw;
+  }
+
+  return result;
 }
 }
 
