@@ -26,6 +26,8 @@ public:
 
   using iterator = Iterator;
   using const_iterator = ConstIterator;
+  using SizeUpdateFunction = size_t (*)(size_t);
+
   HashTable(size_t buckets, size_t bucket_capacity);
   HashTable(const HashTable& other);
   HashTable& operator=(const HashTable& other);
@@ -55,11 +57,22 @@ public:
   double averageBucketSize() const noexcept;
   size_t maxBucketSize() const noexcept;
 
+  void maxLoadFactor(double value);
+  void maxSpareBucketSize(size_t value) noexcept;
+  void maxAverageBucketSize(double value);
+  void bucketUpdateFunction(SizeUpdateFunction function);
+  void bucketSizeUpdateFunction(SizeUpdateFunction function);
+
 private:
   HashTableItem< Key, Value >* data_;
   size_t bucket_count_;
   size_t bucket_capacity_;
   size_t size_;
+  double max_load_factor_;
+  size_t max_spare_bucket_size_;
+  double max_average_bucket_size_;
+  SizeUpdateFunction bucket_update_function_;
+  SizeUpdateFunction bucket_size_update_function_;
   Hash hash_;
   Equal equal_;
 
@@ -67,6 +80,7 @@ private:
   size_t capacity() const noexcept;
   size_t bucketFirst(size_t bucket) const noexcept;
   size_t overflowFirst() const noexcept;
+  static size_t defaultSizeUpdate(size_t value);
 };
 
 template< class Key, class Value, class Hash, class Equal >
@@ -269,6 +283,11 @@ HashTable< Key, Value, Hash, Equal >::HashTable(size_t buckets, size_t bucket_ca
   bucket_count_(buckets),
   bucket_capacity_(bucket_capacity),
   size_(0),
+  max_load_factor_(1.0),
+  max_spare_bucket_size_(bucket_capacity),
+  max_average_bucket_size_(static_cast< double >(bucket_capacity)),
+  bucket_update_function_(defaultSizeUpdate),
+  bucket_size_update_function_(defaultSizeUpdate),
   hash_(),
   equal_()
 {
@@ -302,6 +321,11 @@ HashTable< Key, Value, Hash, Equal >::HashTable(const HashTable& other):
   bucket_count_(other.bucket_count_),
   bucket_capacity_(other.bucket_capacity_),
   size_(0),
+  max_load_factor_(other.max_load_factor_),
+  max_spare_bucket_size_(other.max_spare_bucket_size_),
+  max_average_bucket_size_(other.max_average_bucket_size_),
+  bucket_update_function_(other.bucket_update_function_),
+  bucket_size_update_function_(other.bucket_size_update_function_),
   hash_(other.hash_),
   equal_(other.equal_)
 {
@@ -543,6 +567,11 @@ void HashTable< Key, Value, Hash, Equal >::swap(HashTable& other) noexcept
   swap(bucket_count_, other.bucket_count_);
   swap(bucket_capacity_, other.bucket_capacity_);
   swap(size_, other.size_);
+  swap(max_load_factor_, other.max_load_factor_);
+  swap(max_spare_bucket_size_, other.max_spare_bucket_size_);
+  swap(max_average_bucket_size_, other.max_average_bucket_size_);
+  swap(bucket_update_function_, other.bucket_update_function_);
+  swap(bucket_size_update_function_, other.bucket_size_update_function_);
   swap(hash_, other.hash_);
   swap(equal_, other.equal_);
 }
@@ -551,6 +580,11 @@ template< class Key, class Value, class Hash, class Equal >
 void HashTable< Key, Value, Hash, Equal >::rehash(size_t buckets, size_t bucket_capacity)
 {
   HashTable< Key, Value, Hash, Equal > temp(buckets, bucket_capacity);
+  temp.max_load_factor_ = max_load_factor_;
+  temp.max_spare_bucket_size_ = max_spare_bucket_size_;
+  temp.max_average_bucket_size_ = max_average_bucket_size_;
+  temp.bucket_update_function_ = bucket_update_function_;
+  temp.bucket_size_update_function_ = bucket_size_update_function_;
 
   for (size_t i = 0; i < capacity(); ++i)
   {
@@ -674,6 +708,56 @@ size_t HashTable< Key, Value, Hash, Equal >::maxBucketSize() const noexcept
 }
 
 template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::maxLoadFactor(double value)
+{
+  if (value <= 0.0)
+  {
+    throw std::invalid_argument("invalid max load factor");
+  }
+
+  max_load_factor_ = value;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::maxSpareBucketSize(size_t value) noexcept
+{
+  max_spare_bucket_size_ = value;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::maxAverageBucketSize(double value)
+{
+  if (value <= 0.0)
+  {
+    throw std::invalid_argument("invalid max average bucket size");
+  }
+
+  max_average_bucket_size_ = value;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::bucketUpdateFunction(SizeUpdateFunction function)
+{
+  if (function == nullptr)
+  {
+    throw std::invalid_argument("invalid bucket update function");
+  }
+
+  bucket_update_function_ = function;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::bucketSizeUpdateFunction(SizeUpdateFunction function)
+{
+  if (function == nullptr)
+  {
+    throw std::invalid_argument("invalid bucket size update function");
+  }
+
+  bucket_size_update_function_ = function;
+}
+
+template< class Key, class Value, class Hash, class Equal >
 size_t HashTable< Key, Value, Hash, Equal >::indexOf(const Key& key) const
 {
   return hash_(key) % bucket_count_;
@@ -695,6 +779,17 @@ template< class Key, class Value, class Hash, class Equal >
 size_t HashTable< Key, Value, Hash, Equal >::overflowFirst() const noexcept
 {
   return bucket_count_ * bucket_capacity_;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+size_t HashTable< Key, Value, Hash, Equal >::defaultSizeUpdate(size_t value)
+{
+  if (value > std::numeric_limits< size_t >::max() / 2)
+  {
+    throw std::overflow_error("hash table size update overflow");
+  }
+
+  return value * 2;
 }
 
 }
