@@ -50,6 +50,10 @@ public:
   size_t size() const noexcept;
   size_t bucketCount() const noexcept;
   size_t bucketCapacity() const noexcept;
+  double loadFactor() const noexcept;
+  size_t spareBucketSize() const noexcept;
+  double averageBucketSize() const noexcept;
+  size_t maxBucketSize() const noexcept;
 
 private:
   HashTableItem< Key, Value >* data_;
@@ -611,6 +615,62 @@ template< class Key, class Value, class Hash, class Equal >
 size_t HashTable< Key, Value, Hash, Equal >::bucketCapacity() const noexcept
 {
   return bucket_capacity_;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+double HashTable< Key, Value, Hash, Equal >::loadFactor() const noexcept
+{
+  return static_cast< double >(size_) / static_cast< double >(bucket_count_ * bucket_capacity_);
+}
+
+template< class Key, class Value, class Hash, class Equal >
+size_t HashTable< Key, Value, Hash, Equal >::spareBucketSize() const noexcept
+{
+  size_t result = 0;
+  const size_t overflow = overflowFirst();
+
+  for (size_t i = 0; i < bucket_capacity_; ++i)
+  {
+    if (data_[overflow + i].occupied)
+    {
+      ++result;
+    }
+  }
+
+  return result;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+double HashTable< Key, Value, Hash, Equal >::averageBucketSize() const noexcept
+{
+  return static_cast< double >(size_) / static_cast< double >(bucket_count_);
+}
+
+template< class Key, class Value, class Hash, class Equal >
+size_t HashTable< Key, Value, Hash, Equal >::maxBucketSize() const noexcept
+{
+  size_t result = 0;
+
+  for (size_t bucket = 0; bucket < bucket_count_; ++bucket)
+  {
+    size_t current = 0;
+    const size_t first = bucketFirst(bucket);
+
+    for (size_t i = 0; i < bucket_capacity_; ++i)
+    {
+      if (data_[first + i].occupied)
+      {
+        ++current;
+      }
+    }
+
+    if (current > result)
+    {
+      result = current;
+    }
+  }
+
+  return result;
 }
 
 template< class Key, class Value, class Hash, class Equal >
