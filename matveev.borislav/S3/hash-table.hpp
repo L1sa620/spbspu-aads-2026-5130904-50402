@@ -76,6 +76,7 @@ private:
   Hash hash_;
   Equal equal_;
 
+  void addRaw(const Key& key, const Value& value);
   size_t indexOf(const Key& key) const;
   size_t capacity() const noexcept;
   size_t bucketFirst(size_t bucket) const noexcept;
@@ -337,7 +338,7 @@ HashTable< Key, Value, Hash, Equal >::HashTable(const HashTable& other):
     {
       if (other.data_[i].occupied)
       {
-        add(other.data_[i].key, other.data_[i].value);
+        addRaw(other.data_[i].key, other.data_[i].value);
       }
     }
   }
@@ -365,6 +366,12 @@ HashTable< Key, Value, Hash, Equal >& HashTable< Key, Value, Hash, Equal >::oper
 
 template< class Key, class Value, class Hash, class Equal >
 void HashTable< Key, Value, Hash, Equal >::add(const Key& key, const Value& value)
+{
+  addRaw(key, value);
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::addRaw(const Key& key, const Value& value)
 {
   size_t bucket = indexOf(key);
   size_t first = bucketFirst(bucket);
@@ -590,7 +597,7 @@ void HashTable< Key, Value, Hash, Equal >::rehash(size_t buckets, size_t bucket_
   {
     if (data_[i].occupied)
     {
-      temp.add(data_[i].key, data_[i].value);
+      temp.addRaw(data_[i].key, data_[i].value);
     }
   }
 
