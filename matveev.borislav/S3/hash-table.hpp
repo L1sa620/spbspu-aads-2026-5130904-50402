@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <utility>
 #include <limits>
+#include <memory>
 
 namespace matveev
 {
@@ -77,6 +78,8 @@ private:
   Equal equal_;
 
   void addRaw(const Key& key, const Value& value);
+  bool needRehash() const noexcept;
+  void rehashByLimits();
   size_t indexOf(const Key& key) const;
   size_t capacity() const noexcept;
   size_t bucketFirst(size_t bucket) const noexcept;
@@ -368,6 +371,11 @@ template< class Key, class Value, class Hash, class Equal >
 void HashTable< Key, Value, Hash, Equal >::add(const Key& key, const Value& value)
 {
   addRaw(key, value);
+
+  if (needRehash())
+  {
+    rehashByLimits();
+  }
 }
 
 template< class Key, class Value, class Hash, class Equal >
@@ -426,6 +434,52 @@ void HashTable< Key, Value, Hash, Equal >::addRaw(const Key& key, const Value& v
   }
 
   throw std::overflow_error("hash table overflow bucket overflow");
+}
+
+template< class Key, class Value, class Hash, class Equal >
+bool HashTable< Key, Value, Hash, Equal >::needRehash() const noexcept
+{
+  const bool load_limit = loadFactor() > max_load_factor_;
+  const bool spare_limit = spareBucketSize() > max_spare_bucket_size_;
+  const bool average_limit = averageBucketSize() > max_average_bucket_size_;
+
+  return load_limit || spare_limit || average_limit;
+}
+
+template< class Key, class Value, class Hash, class Equal >
+void HashTable< Key, Value, Hash, Equal >::rehashByLimits()
+{
+  size_t new_bucket_count = bucket_count_;
+  size_t new_bucket_capacity = bucket_capacity_;
+
+  bool load_limit = true;
+  bool average_limit = true;
+
+  while (load_limit || average_limit)
+  {
+    const double new_load = static_cast< double >(size_) / static_cast< double >(new_bucket_count * new_bucket_capacity);
+    const double new_average = static_cast< double >(size_) / static_cast< double >(new_bucket_count);
+
+    load_limit = new_load > max_load_factor_;
+    average_limit = new_average > max_average_bucket_size_;
+
+    if (load_limit || average_limit)
+    {
+      new_bucket_count = bucket_update_function_(new_bucket_count);
+    }
+  }
+
+  if (spareBucketSize() > max_spare_bucket_size_)
+  {
+    new_bucket_capacity = bucket_size_update_function_(new_bucket_capacity);
+  }
+
+  if (new_bucket_count == bucket_count_ && new_bucket_capacity == bucket_capacity_)
+  {
+    new_bucket_count = bucket_update_function_(new_bucket_count);
+  }
+
+  rehash(new_bucket_count, new_bucket_capacity);
 }
 
 template< class Key, class Value, class Hash, class Equal >
