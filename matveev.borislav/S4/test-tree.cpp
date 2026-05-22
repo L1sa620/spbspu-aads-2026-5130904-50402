@@ -2,10 +2,12 @@
 
 #include "binary-search-tree.hpp"
 #include "dictionary-operations.hpp"
+#include "dictionary-reader.hpp"
 
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <sstream>
 
 BOOST_AUTO_TEST_CASE(empty_tree)
 {
@@ -348,4 +350,18 @@ BOOST_AUTO_TEST_CASE(union_dictionary)
   BOOST_TEST(result.at(1) == "one");
   BOOST_TEST(result.at(2) == "two");
   BOOST_TEST(result.at(3) == "three");
+}
+
+BOOST_AUTO_TEST_CASE(read_dictionaries)
+{
+  std::istringstream input("first 1 one 2 two\nsecond 3 three\nempty\n");
+
+  matveev::DictionaryStorage storage = matveev::readDictionaries(input);
+
+  BOOST_TEST(storage.size() == 3);
+  BOOST_TEST(storage.at("first").size() == 2);
+  BOOST_TEST(storage.at("first").at(1) == "one");
+  BOOST_TEST(storage.at("first").at(2) == "two");
+  BOOST_TEST(storage.at("second").at(3) == "three");
+  BOOST_TEST(storage.at("empty").empty());
 }
