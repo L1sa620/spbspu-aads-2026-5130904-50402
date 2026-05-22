@@ -23,6 +23,19 @@ struct IntEqual
     return lhs == rhs;
   }
 };
+
+struct SameHash
+{
+  size_t operator()(int) const
+  {
+    return 0;
+  }
+};
+
+size_t addOne(size_t value)
+{
+  return value + 1;
+}
 }
 
 BOOST_AUTO_TEST_CASE(add_and_find_value)
@@ -81,20 +94,13 @@ BOOST_AUTO_TEST_CASE(clear_removes_all_values)
   BOOST_TEST(!table.has(2));
 }
 
-namespace
-{
-struct SameHash
-{
-  size_t operator()(int) const
-  {
-    return 0;
-  }
-};
-}
-
 BOOST_AUTO_TEST_CASE(uses_overflow_bucket)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > table(1, 2);
+
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
 
   table.add(1, "one");
   table.add(2, "two");
@@ -111,6 +117,10 @@ BOOST_AUTO_TEST_CASE(overflow_bucket_limit_throws)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > table(1, 2);
 
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
+
   table.add(1, "one");
   table.add(2, "two");
   table.add(3, "three");
@@ -122,6 +132,10 @@ BOOST_AUTO_TEST_CASE(overflow_bucket_limit_throws)
 BOOST_AUTO_TEST_CASE(rehash_keeps_values)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > table(1, 2);
+
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
 
   table.add(1, "one");
   table.add(2, "two");
@@ -143,6 +157,10 @@ BOOST_AUTO_TEST_CASE(copy_constructor_copies_values)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > table(1, 2);
 
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
+
   table.add(1, "one");
   table.add(2, "two");
   table.add(3, "three");
@@ -159,6 +177,10 @@ BOOST_AUTO_TEST_CASE(copy_constructor_copies_values)
 BOOST_AUTO_TEST_CASE(assignment_operator_copies_values)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > source(1, 2);
+
+  source.maxLoadFactor(100.0);
+  source.maxSpareBucketSize(100);
+  source.maxAverageBucketSize(100.0);
 
   source.add(1, "one");
   source.add(2, "two");
@@ -179,6 +201,10 @@ BOOST_AUTO_TEST_CASE(iterator_visits_only_occupied_items)
 {
   matveev::HashTable< int, std::string, SameHash, IntEqual > table(1, 2);
 
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
+
   table.add(1, "one");
   table.add(2, "two");
   table.add(3, "three");
@@ -191,4 +217,105 @@ BOOST_AUTO_TEST_CASE(iterator_visits_only_occupied_items)
   }
 
   BOOST_TEST(count == 3);
+}
+
+BOOST_AUTO_TEST_CASE(hash_table_statistics)
+{
+  matveev::HashTable< int, std::string, SameHash, IntEqual > table(2, 2);
+
+  table.maxLoadFactor(100.0);
+  table.maxSpareBucketSize(100);
+  table.maxAverageBucketSize(100.0);
+
+  table.add(1, "one");
+  table.add(2, "two");
+  table.add(3, "three");
+
+  BOOST_TEST(table.size() == 3);
+  BOOST_TEST(table.bucketCount() == 2);
+  BOOST_TEST(table.bucketCapacity() == 2);
+  BOOST_TEST(table.loadFactor() == 0.75);
+  BOOST_TEST(table.averageBucketSize() == 1.5);
+  BOOST_TEST(table.maxBucketSize() == 2);
+  BOOST_TEST(table.spareBucketSize() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(auto_rehash_by_load_factor)
+{
+  matveev::HashTable< int, std::string, IntHash, IntEqual > table(2, 2);
+
+  table.maxLoadFactor(0.5);
+
+  table.add(1, "one");
+  table.add(2, "two");
+  table.add(3, "three");
+
+  BOOST_TEST(table.bucketCount() > 2);
+  BOOST_TEST(table.has(1));
+  BOOST_TEST(table.has(2));
+  BOOST_TEST(table.has(3));
+}
+
+BOOST_AUTO_TEST_CASE(auto_rehash_by_spare_bucket_size)
+{
+  matveev::HashTable< int, std::string, SameHash, IntEqual > table(2, 2);
+
+  table.maxLoadFactor(100.0);
+  table.maxAverageBucketSize(100.0);
+  table.maxSpareBucketSize(0);
+
+  table.add(1, "one");
+  table.add(2, "two");
+  table.add(3, "three");
+
+  BOOST_TEST(table.bucketCapacity() > 2);
+  BOOST_TEST(table.has(1));
+  BOOST_TEST(table.has(2));
+  BOOST_TEST(table.has(3));
+}
+
+BOOST_AUTO_TEST_CASE(custom_bucket_update_function_is_used)
+{
+  matveev::HashTable< int, std::string, IntHash, IntEqual > table(2, 2);
+
+  table.bucketUpdateFunction(addOne);
+  table.maxLoadFactor(0.5);
+
+  table.add(1, "one");
+  table.add(2, "two");
+  table.add(3, "three");
+
+  BOOST_TEST(table.bucketCount() == 3);
+  BOOST_TEST(table.has(1));
+  BOOST_TEST(table.has(2));
+  BOOST_TEST(table.has(3));
+}
+
+BOOST_AUTO_TEST_CASE(custom_bucket_size_update_function_is_used)
+{
+  matveev::HashTable< int, std::string, SameHash, IntEqual > table(2, 2);
+
+  table.bucketSizeUpdateFunction(addOne);
+  table.maxLoadFactor(100.0);
+  table.maxAverageBucketSize(100.0);
+  table.maxSpareBucketSize(0);
+
+  table.add(1, "one");
+  table.add(2, "two");
+  table.add(3, "three");
+
+  BOOST_TEST(table.bucketCapacity() == 3);
+  BOOST_TEST(table.has(1));
+  BOOST_TEST(table.has(2));
+  BOOST_TEST(table.has(3));
+}
+
+BOOST_AUTO_TEST_CASE(invalid_rebuild_settings_throw)
+{
+  matveev::HashTable< int, std::string, IntHash, IntEqual > table(2, 2);
+
+  BOOST_CHECK_THROW(table.maxLoadFactor(0.0), std::invalid_argument);
+  BOOST_CHECK_THROW(table.maxAverageBucketSize(0.0), std::invalid_argument);
+  BOOST_CHECK_THROW(table.bucketUpdateFunction(nullptr), std::invalid_argument);
+  BOOST_CHECK_THROW(table.bucketSizeUpdateFunction(nullptr), std::invalid_argument);
 }
