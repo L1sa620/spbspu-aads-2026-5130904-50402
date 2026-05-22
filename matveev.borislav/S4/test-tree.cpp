@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "binary-search-tree.hpp"
+#include "dictionary-operations.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -286,4 +287,65 @@ BOOST_AUTO_TEST_CASE(clear_tree)
   BOOST_TEST(tree.size() == 0);
   BOOST_TEST(!tree.has(2));
   BOOST_TEST(static_cast< bool >(tree.begin() == tree.end()));
+}
+
+BOOST_AUTO_TEST_CASE(complement_dictionary)
+{
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+  lhs.push(3, "three");
+
+  rhs.push(2, "two");
+  rhs.push(4, "four");
+
+  matveev::Dictionary result = matveev::complementDictionary(lhs, rhs);
+
+  BOOST_TEST(result.size() == 2);
+  BOOST_TEST(result.has(1));
+  BOOST_TEST(result.has(3));
+  BOOST_TEST(!result.has(2));
+}
+
+BOOST_AUTO_TEST_CASE(intersect_dictionary)
+{
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+  lhs.push(3, "three");
+
+  rhs.push(2, "two");
+  rhs.push(3, "THREE");
+  rhs.push(4, "four");
+
+  matveev::Dictionary result = matveev::intersectDictionary(lhs, rhs);
+
+  BOOST_TEST(result.size() == 2);
+  BOOST_TEST(result.has(2));
+  BOOST_TEST(result.has(3));
+  BOOST_TEST(result.at(2) == "two");
+  BOOST_TEST(result.at(3) == "three");
+}
+
+BOOST_AUTO_TEST_CASE(union_dictionary)
+{
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+
+  rhs.push(2, "TWO");
+  rhs.push(3, "three");
+
+  matveev::Dictionary result = matveev::unionDictionary(lhs, rhs);
+
+  BOOST_TEST(result.size() == 3);
+  BOOST_TEST(result.at(1) == "one");
+  BOOST_TEST(result.at(2) == "two");
+  BOOST_TEST(result.at(3) == "three");
 }
