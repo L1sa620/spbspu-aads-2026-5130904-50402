@@ -470,3 +470,77 @@ BOOST_AUTO_TEST_CASE(invalid_dictionary_command)
   BOOST_TEST(!matveev::executeCommand(out, storage, "print missing"));
   BOOST_TEST(out.str() == "<INVALID COMMAND>\n");
 }
+
+BOOST_AUTO_TEST_CASE(complement_overwrites_existing_dictionary)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary first;
+  matveev::Dictionary second;
+
+  first.push(1, "name");
+  first.push(2, "surname");
+
+  second.push(4, "mouse");
+  second.push(1, "name");
+  second.push(2, "keyboard");
+
+  storage.push("first", first);
+  storage.push("second", second);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "complement second second first"));
+  BOOST_TEST(storage.at("second").size() == 1);
+  BOOST_TEST(storage.at("second").at(4) == "mouse");
+}
+
+BOOST_AUTO_TEST_CASE(intersect_overwrites_existing_dictionary)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary first;
+  matveev::Dictionary second;
+
+  first.push(1, "name");
+  first.push(2, "surname");
+
+  second.push(4, "mouse");
+  second.push(1, "name");
+  second.push(2, "keyboard");
+
+  storage.push("first", first);
+  storage.push("second", second);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "intersect second second first"));
+  BOOST_TEST(storage.at("second").size() == 2);
+  BOOST_TEST(storage.at("second").at(1) == "name");
+  BOOST_TEST(storage.at("second").at(2) == "keyboard");
+}
+
+BOOST_AUTO_TEST_CASE(union_overwrites_existing_dictionary)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary first;
+  matveev::Dictionary second;
+
+  first.push(1, "name");
+  first.push(3, "machine");
+  first.push(2, "surname");
+
+  second.push(4, "mouse");
+  second.push(1, "name");
+  second.push(2, "keyboard");
+
+  storage.push("first", first);
+  storage.push("second", second);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "union first second first"));
+  BOOST_TEST(storage.at("first").size() == 4);
+  BOOST_TEST(storage.at("first").at(1) == "name");
+  BOOST_TEST(storage.at("first").at(2) == "keyboard");
+  BOOST_TEST(storage.at("first").at(3) == "machine");
+  BOOST_TEST(storage.at("first").at(4) == "mouse");
+}

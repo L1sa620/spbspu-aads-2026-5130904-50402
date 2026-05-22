@@ -79,6 +79,23 @@ bool readThreeArgs(
 
   return !hasExtraTokens(line, pos);
 }
+
+void replaceDictionary(
+  matveev::DictionaryStorage& storage,
+  const std::string& name,
+  const matveev::Dictionary& dictionary
+)
+{
+  matveev::DictionaryStorage tmp(storage);
+
+  if (tmp.has(name))
+  {
+    tmp.drop(name);
+  }
+
+  tmp.push(name, dictionary);
+  storage.swap(tmp);
+}
 }
 
 namespace matveev
@@ -149,7 +166,7 @@ bool executeCommand(std::ostream& out, DictionaryStorage& storage, const std::st
     try
     {
       Dictionary result = complementDictionary(storage.at(lhs_name), storage.at(rhs_name));
-      storage.push(new_name, result);
+      replaceDictionary(storage, new_name, result);
     }
     catch (const std::exception&)
     {
@@ -175,7 +192,7 @@ bool executeCommand(std::ostream& out, DictionaryStorage& storage, const std::st
     try
     {
       Dictionary result = intersectDictionary(storage.at(lhs_name), storage.at(rhs_name));
-      storage.push(new_name, result);
+      replaceDictionary(storage, new_name, result);
     }
     catch (const std::exception&)
     {
@@ -201,7 +218,7 @@ bool executeCommand(std::ostream& out, DictionaryStorage& storage, const std::st
     try
     {
       Dictionary result = unionDictionary(storage.at(lhs_name), storage.at(rhs_name));
-      storage.push(new_name, result);
+      replaceDictionary(storage, new_name, result);
     }
     catch (const std::exception&)
     {
