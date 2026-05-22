@@ -3,6 +3,7 @@
 #include "binary-search-tree.hpp"
 #include "dictionary-operations.hpp"
 #include "dictionary-reader.hpp"
+#include "dictionary-commands.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -364,4 +365,108 @@ BOOST_AUTO_TEST_CASE(read_dictionaries)
   BOOST_TEST(storage.at("first").at(2) == "two");
   BOOST_TEST(storage.at("second").at(3) == "three");
   BOOST_TEST(storage.at("empty").empty());
+}
+
+BOOST_AUTO_TEST_CASE(print_dictionary_command)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary dict;
+
+  dict.push(2, "two");
+  dict.push(1, "one");
+  storage.push("first", dict);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "print first"));
+  BOOST_TEST(out.str() == "first 1 one 2 two\n");
+}
+
+BOOST_AUTO_TEST_CASE(print_empty_dictionary_command)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary dict;
+
+  storage.push("empty", dict);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "print empty"));
+  BOOST_TEST(out.str() == "<EMPTY>\n");
+}
+
+BOOST_AUTO_TEST_CASE(complement_command)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+  rhs.push(2, "two");
+
+  storage.push("lhs", lhs);
+  storage.push("rhs", rhs);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "complement result lhs rhs"));
+  BOOST_TEST(storage.has("result"));
+  BOOST_TEST(storage.at("result").size() == 1);
+  BOOST_TEST(storage.at("result").at(1) == "one");
+}
+
+BOOST_AUTO_TEST_CASE(intersect_command)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+  rhs.push(2, "TWO");
+  rhs.push(3, "three");
+
+  storage.push("lhs", lhs);
+  storage.push("rhs", rhs);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "intersect result lhs rhs"));
+  BOOST_TEST(storage.has("result"));
+  BOOST_TEST(storage.at("result").size() == 1);
+  BOOST_TEST(storage.at("result").at(2) == "two");
+}
+
+BOOST_AUTO_TEST_CASE(union_command)
+{
+  matveev::DictionaryStorage storage;
+  matveev::Dictionary lhs;
+  matveev::Dictionary rhs;
+
+  lhs.push(1, "one");
+  lhs.push(2, "two");
+  rhs.push(2, "TWO");
+  rhs.push(3, "three");
+
+  storage.push("lhs", lhs);
+  storage.push("rhs", rhs);
+
+  std::ostringstream out;
+
+  BOOST_TEST(matveev::executeCommand(out, storage, "union result lhs rhs"));
+  BOOST_TEST(storage.has("result"));
+  BOOST_TEST(storage.at("result").size() == 3);
+  BOOST_TEST(storage.at("result").at(1) == "one");
+  BOOST_TEST(storage.at("result").at(2) == "two");
+  BOOST_TEST(storage.at("result").at(3) == "three");
+}
+
+BOOST_AUTO_TEST_CASE(invalid_dictionary_command)
+{
+  matveev::DictionaryStorage storage;
+  std::ostringstream out;
+
+  BOOST_TEST(!matveev::executeCommand(out, storage, "print missing"));
+  BOOST_TEST(out.str() == "<INVALID COMMAND>\n");
 }
