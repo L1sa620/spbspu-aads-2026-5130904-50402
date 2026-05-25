@@ -19,6 +19,12 @@ struct Node
     next(nullptr)
   {}
 
+  template< class... Args >
+  Node(Args&&... args):
+    data(std::forward< Args >(args)...),
+    next(nullptr)
+  {}
+
   Node(const T& value):
     data(value),
     next(nullptr)
@@ -259,6 +265,25 @@ public:
     Node< T >* node = pos.node_;
 
     Node< T >* newNode = new Node< T >(value);
+    newNode->next = node->next;
+    node->next = newNode;
+
+    LIter< T > it;
+    it.node_ = newNode;
+
+    return it;
+  }
+
+  template< class... Args >
+  LIter< T > emplaceAfter(LIter< T > pos, Args&&... args)
+  {
+    if (pos.node_ == nullptr)
+    {
+      return end();
+    }
+
+    Node< T >* node = pos.node_;
+    Node< T >* newNode = new Node< T >(std::forward< Args >(args)...);
     newNode->next = node->next;
     node->next = newNode;
 

@@ -4,6 +4,7 @@
 #include "../common/list.hpp"
 #include <stdexcept>
 #include <cstddef>
+#include <utility>
 
 namespace matveev
 {
@@ -31,6 +32,14 @@ public:
   {
     tail_ = data_.insertAfter(tail_, value);
     ++size_;
+  }
+
+  template< class... Args >
+  T& emplace(Args&&... args)
+  {
+    tail_ = data_.emplaceAfter(tail_, std::forward< Args >(args)...);
+    ++size_;
+    return *tail_;
   }
 
   void drop()

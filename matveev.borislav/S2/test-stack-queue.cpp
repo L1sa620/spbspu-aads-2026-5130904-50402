@@ -108,3 +108,53 @@ BOOST_AUTO_TEST_CASE(queue_empty_throws)
   BOOST_CHECK_THROW(q.front(), std::runtime_error);
   BOOST_CHECK_THROW(q.drop(), std::runtime_error);
 }
+
+struct ComplexValue
+{
+  ComplexValue():
+    first(0),
+    second()
+  {}
+
+  ComplexValue(int first_value, const std::string& second_value):
+    first(first_value),
+    second(second_value)
+  {}
+
+  int first;
+  std::string second;
+};
+
+BOOST_AUTO_TEST_CASE(stack_emplace_complex_value)
+{
+  matveev::Stack< ComplexValue > stack;
+
+  ComplexValue& value = stack.emplace(10, "ten");
+
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.first == 10);
+  BOOST_TEST(value.second == "ten");
+  BOOST_TEST(stack.top().first == 10);
+  BOOST_TEST(stack.top().second == "ten");
+}
+
+BOOST_AUTO_TEST_CASE(queue_emplace_complex_value)
+{
+  matveev::Queue< ComplexValue > queue;
+
+  ComplexValue& first = queue.emplace(1, "one");
+  ComplexValue& second = queue.emplace(2, "two");
+
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.first == 1);
+  BOOST_TEST(first.second == "one");
+  BOOST_TEST(second.first == 2);
+  BOOST_TEST(second.second == "two");
+
+  BOOST_TEST(queue.front().first == 1);
+  BOOST_TEST(queue.front().second == "one");
+  queue.drop();
+
+  BOOST_TEST(queue.front().first == 2);
+  BOOST_TEST(queue.front().second == "two");
+}
