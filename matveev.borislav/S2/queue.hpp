@@ -7,23 +7,22 @@
 
 namespace matveev
 {
-
-template<class T>
+template< class T >
 class Queue
 {
 public:
-
   Queue():
+    data_(),
     tail_(data_.beforeBegin()),
     size_(0)
   {}
 
-  bool empty() const
+  bool empty() const noexcept
   {
     return size_ == 0;
   }
 
-  size_t size() const
+  size_t size() const noexcept
   {
     return size_;
   }
@@ -34,15 +33,12 @@ public:
     ++size_;
   }
 
-  T drop()
+  void drop()
   {
     if (size_ == 0)
     {
       throw std::runtime_error("queue empty");
     }
-
-    auto it = data_.begin();
-    T value = *it;
 
     data_.removeFront();
     --size_;
@@ -51,8 +47,6 @@ public:
     {
       tail_ = data_.beforeBegin();
     }
-
-    return value;
   }
 
   T& front()
@@ -65,12 +59,21 @@ public:
     return *data_.begin();
   }
 
+  const T& front() const
+  {
+    if (size_ == 0)
+    {
+      throw std::runtime_error("queue empty");
+    }
+
+    return *data_.begin();
+  }
+
 private:
-  List<T> data_;
-  LIter<T> tail_;
+  List< T > data_;
+  LIter< T > tail_;
   size_t size_;
 };
-
 }
 
 #endif
