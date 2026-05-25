@@ -11,25 +11,36 @@ namespace matveev
 template< class T >
 struct Node
 {
-  T data;
-  Node< T >* next;
-
-  Node():
-    data(),
-    next(nullptr)
-  {}
+  Node();
+  Node(const T& value);
+  Node(const Node&) = delete;
+  Node& operator=(const Node&) = delete;
 
   template< class... Args >
-  Node(Args&&... args):
-    data(std::forward< Args >(args)...),
-    next(nullptr)
-  {}
+  Node(Args&&... args);
 
-  Node(const T& value):
-    data(value),
-    next(nullptr)
-  {}
+  T data;
+  Node< T >* next;
 };
+
+template< class T >
+Node< T >::Node():
+  data(),
+  next(nullptr)
+{}
+
+template< class T >
+Node< T >::Node(const T& value):
+  data(value),
+  next(nullptr)
+{}
+
+template< class T >
+template< class... Args >
+Node< T >::Node(Args&&... args):
+  data(std::forward< Args >(args)...),
+  next(nullptr)
+{}
 
 template< class T >
 class LIter
@@ -117,15 +128,15 @@ template< class T >
 class List
 {
 public:
-  List()
+  List():
+    sentinel_(new Node< T >())
   {
-    sentinel_ = new Node< T >();
     sentinel_->next = nullptr;
   }
 
-  List(const List& other)
+  List(const List& other):
+    sentinel_(new Node< T >())
   {
-    sentinel_ = new Node< T >();
     sentinel_->next = nullptr;
 
     Node< T >* tail = sentinel_;
@@ -140,9 +151,9 @@ public:
     }
   }
 
-  List(List&& other)
+  List(List&& other):
+    sentinel_(other.sentinel_)
   {
-    sentinel_ = other.sentinel_;
     other.sentinel_ = new Node< T >();
     other.sentinel_->next = nullptr;
   }
