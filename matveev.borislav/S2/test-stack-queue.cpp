@@ -3,9 +3,11 @@
 
 #include "stack.hpp"
 #include "queue.hpp"
+#include "../common/list.hpp"
 
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 BOOST_AUTO_TEST_CASE(stack_push_top_drop_int)
 {
@@ -157,4 +159,62 @@ BOOST_AUTO_TEST_CASE(queue_emplace_complex_value)
 
   BOOST_TEST(queue.front().first == 2);
   BOOST_TEST(queue.front().second == "two");
+}
+
+BOOST_AUTO_TEST_CASE(stack_emplace_pair)
+{
+  matveev::Stack< std::pair< int, std::string > > stack;
+
+  std::pair< int, std::string >& value = stack.emplace(10, "ten");
+
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.first == 10);
+  BOOST_TEST(value.second == "ten");
+  BOOST_TEST(stack.top().first == 10);
+  BOOST_TEST(stack.top().second == "ten");
+}
+
+BOOST_AUTO_TEST_CASE(queue_emplace_pair)
+{
+  matveev::Queue< std::pair< int, std::string > > queue;
+
+  std::pair< int, std::string >& first = queue.emplace(1, "one");
+  std::pair< int, std::string >& second = queue.emplace(2, "two");
+
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.first == 1);
+  BOOST_TEST(first.second == "one");
+  BOOST_TEST(second.first == 2);
+  BOOST_TEST(second.second == "two");
+
+  BOOST_TEST(queue.front().first == 1);
+  BOOST_TEST(queue.front().second == "one");
+
+  queue.drop();
+
+  BOOST_TEST(queue.front().first == 2);
+  BOOST_TEST(queue.front().second == "two");
+}
+
+BOOST_AUTO_TEST_CASE(list_emplace_after_pair)
+{
+  matveev::List< std::pair< int, std::string > > list;
+
+  matveev::LIter< std::pair< int, std::string > > first = list.emplaceAfter(list.beforeBegin(), 1, "one");
+  matveev::LIter< std::pair< int, std::string > > second = list.emplaceAfter(first, 2, "two");
+
+  BOOST_TEST(first->first == 1);
+  BOOST_TEST(first->second == "one");
+  BOOST_TEST(second->first == 2);
+  BOOST_TEST(second->second == "two");
+
+  matveev::LIter< std::pair< int, std::string > > it = list.begin();
+
+  BOOST_TEST(it->first == 1);
+  BOOST_TEST(it->second == "one");
+
+  ++it;
+
+  BOOST_TEST(it->first == 2);
+  BOOST_TEST(it->second == "two");
 }
