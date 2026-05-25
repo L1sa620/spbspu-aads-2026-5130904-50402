@@ -218,3 +218,64 @@ BOOST_AUTO_TEST_CASE(list_emplace_after_pair)
   BOOST_TEST(it->first == 2);
   BOOST_TEST(it->second == "two");
 }
+
+struct MoveOnlyValue
+{
+  MoveOnlyValue():
+    value(0)
+  {}
+
+  explicit MoveOnlyValue(int rhs):
+    value(rhs)
+  {}
+
+  MoveOnlyValue(const MoveOnlyValue&) = delete;
+  MoveOnlyValue& operator=(const MoveOnlyValue&) = delete;
+
+  MoveOnlyValue(MoveOnlyValue&& other) noexcept:
+    value(other.value)
+  {
+    other.value = 0;
+  }
+
+  MoveOnlyValue& operator=(MoveOnlyValue&& other) noexcept
+  {
+    if (this != &other)
+    {
+      value = other.value;
+      other.value = 0;
+    }
+
+    return *this;
+  }
+
+  int value;
+};
+
+BOOST_AUTO_TEST_CASE(stack_emplace_move_only_value)
+{
+  matveev::Stack< MoveOnlyValue > stack;
+
+  MoveOnlyValue& value = stack.emplace(42);
+
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.value == 42);
+  BOOST_TEST(stack.top().value == 42);
+}
+
+BOOST_AUTO_TEST_CASE(queue_emplace_move_only_value)
+{
+  matveev::Queue< MoveOnlyValue > queue;
+
+  MoveOnlyValue& first = queue.emplace(10);
+  MoveOnlyValue& second = queue.emplace(20);
+
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.value == 10);
+  BOOST_TEST(second.value == 20);
+
+  BOOST_TEST(queue.front().value == 10);
+  queue.drop();
+
+  BOOST_TEST(queue.front().value == 20);
+}
