@@ -1,187 +1,281 @@
 #define BOOST_TEST_MODULE stack_queue_tests
 #include <boost/test/included/unit_test.hpp>
 
-#include "../S2/stack.hpp"
-#include "../S2/queue.hpp"
-#include "../S2/parser.hpp"
+#include "stack.hpp"
+#include "queue.hpp"
+#include "../common/list.hpp"
 
+#include <stdexcept>
 #include <string>
+#include <utility>
 
-BOOST_AUTO_TEST_CASE(stack_basic_operations)
+BOOST_AUTO_TEST_CASE(stack_push_top_drop_int)
 {
-  matveev::Stack<int> s;
+  matveev::Stack< int > s;
 
-  BOOST_CHECK(s.empty());
-  BOOST_CHECK_EQUAL(s.size(), 0);
+  BOOST_TEST(s.empty());
+  BOOST_TEST(s.size() == 0);
 
   s.push(10);
   s.push(20);
   s.push(30);
 
-  BOOST_CHECK(!s.empty());
-  BOOST_CHECK_EQUAL(s.size(), 3);
+  BOOST_TEST(!s.empty());
+  BOOST_TEST(s.size() == 3);
 
   BOOST_CHECK_EQUAL(s.top(), 30);
+  s.drop();
 
-  BOOST_CHECK_EQUAL(s.drop(), 30);
-  BOOST_CHECK_EQUAL(s.drop(), 20);
-  BOOST_CHECK_EQUAL(s.drop(), 10);
+  BOOST_CHECK_EQUAL(s.top(), 20);
+  s.drop();
 
-  BOOST_CHECK(s.empty());
+  BOOST_CHECK_EQUAL(s.top(), 10);
+  s.drop();
+
+  BOOST_TEST(s.empty());
+  BOOST_TEST(s.size() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(stack_string)
+BOOST_AUTO_TEST_CASE(stack_push_top_drop_string)
 {
-  matveev::Stack<std::string> s;
+  matveev::Stack< std::string > s;
 
   s.push("a");
   s.push("b");
 
   BOOST_CHECK_EQUAL(s.top(), "b");
-  BOOST_CHECK_EQUAL(s.drop(), "b");
-  BOOST_CHECK_EQUAL(s.drop(), "a");
+  s.drop();
+
+  BOOST_CHECK_EQUAL(s.top(), "a");
+  s.drop();
+
+  BOOST_TEST(s.empty());
 }
 
-BOOST_AUTO_TEST_CASE(stack_exceptions)
+BOOST_AUTO_TEST_CASE(stack_empty_throws)
 {
-  matveev::Stack<int> s;
+  matveev::Stack< int > s;
 
-  BOOST_CHECK_THROW(s.drop(), std::runtime_error);
   BOOST_CHECK_THROW(s.top(), std::runtime_error);
+  BOOST_CHECK_THROW(s.drop(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(queue_basic_operations)
+BOOST_AUTO_TEST_CASE(queue_push_front_drop_int)
 {
-  matveev::Queue<int> q;
+  matveev::Queue< int > q;
 
-  BOOST_CHECK(q.empty());
-  BOOST_CHECK_EQUAL(q.size(), 0);
+  BOOST_TEST(q.empty());
+  BOOST_TEST(q.size() == 0);
 
   q.push(1);
   q.push(2);
   q.push(3);
 
-  BOOST_CHECK(!q.empty());
-  BOOST_CHECK_EQUAL(q.size(), 3);
+  BOOST_TEST(!q.empty());
+  BOOST_TEST(q.size() == 3);
 
   BOOST_CHECK_EQUAL(q.front(), 1);
+  q.drop();
 
-  BOOST_CHECK_EQUAL(q.drop(), 1);
-  BOOST_CHECK_EQUAL(q.drop(), 2);
-  BOOST_CHECK_EQUAL(q.drop(), 3);
+  BOOST_CHECK_EQUAL(q.front(), 2);
+  q.drop();
 
-  BOOST_CHECK(q.empty());
+  BOOST_CHECK_EQUAL(q.front(), 3);
+  q.drop();
+
+  BOOST_TEST(q.empty());
+  BOOST_TEST(q.size() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(queue_string)
+BOOST_AUTO_TEST_CASE(queue_push_front_drop_string)
 {
-  matveev::Queue<std::string> q;
+  matveev::Queue< std::string > q;
 
   q.push("one");
   q.push("two");
 
   BOOST_CHECK_EQUAL(q.front(), "one");
-  BOOST_CHECK_EQUAL(q.drop(), "one");
-  BOOST_CHECK_EQUAL(q.drop(), "two");
+  q.drop();
+
+  BOOST_CHECK_EQUAL(q.front(), "two");
+  q.drop();
+
+  BOOST_TEST(q.empty());
 }
 
-BOOST_AUTO_TEST_CASE(queue_exceptions)
+BOOST_AUTO_TEST_CASE(queue_empty_throws)
 {
-  matveev::Queue<int> q;
+  matveev::Queue< int > q;
 
-  BOOST_CHECK_THROW(q.drop(), std::runtime_error);
   BOOST_CHECK_THROW(q.front(), std::runtime_error);
+  BOOST_CHECK_THROW(q.drop(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(parser_simple_expression)
+struct ComplexValue
 {
-  matveev::Queue<std::string> q;
+  ComplexValue():
+    first(0),
+    second()
+  {}
 
-  q.push("2");
-  q.push("+");
-  q.push("3");
+  ComplexValue(int first_value, const std::string& second_value):
+    first(first_value),
+    second(second_value)
+  {}
 
-  auto postfix = matveev::toPostfix(q);
-  long result = matveev::evaluatePostfix(postfix);
+  int first;
+  std::string second;
+};
 
-  BOOST_CHECK_EQUAL(result, 5);
+BOOST_AUTO_TEST_CASE(stack_emplace_complex_value)
+{
+  matveev::Stack< ComplexValue > stack;
+
+  ComplexValue& value = stack.emplace(10, "ten");
+
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.first == 10);
+  BOOST_TEST(value.second == "ten");
+  BOOST_TEST(stack.top().first == 10);
+  BOOST_TEST(stack.top().second == "ten");
 }
 
-BOOST_AUTO_TEST_CASE(parser_precedence)
+BOOST_AUTO_TEST_CASE(queue_emplace_complex_value)
 {
-  matveev::Queue<std::string> q;
+  matveev::Queue< ComplexValue > queue;
 
-  q.push("2");
-  q.push("+");
-  q.push("3");
-  q.push("*");
-  q.push("4");
+  ComplexValue& first = queue.emplace(1, "one");
+  ComplexValue& second = queue.emplace(2, "two");
 
-  auto postfix = matveev::toPostfix(q);
-  long result = matveev::evaluatePostfix(postfix);
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.first == 1);
+  BOOST_TEST(first.second == "one");
+  BOOST_TEST(second.first == 2);
+  BOOST_TEST(second.second == "two");
 
-  BOOST_CHECK_EQUAL(result, 14);
+  BOOST_TEST(queue.front().first == 1);
+  BOOST_TEST(queue.front().second == "one");
+  queue.drop();
+
+  BOOST_TEST(queue.front().first == 2);
+  BOOST_TEST(queue.front().second == "two");
 }
 
-BOOST_AUTO_TEST_CASE(parser_parentheses)
+BOOST_AUTO_TEST_CASE(stack_emplace_pair)
 {
-  matveev::Queue<std::string> q;
+  matveev::Stack< std::pair< int, std::string > > stack;
 
-  q.push("(");
-  q.push("2");
-  q.push("+");
-  q.push("3");
-  q.push(")");
-  q.push("*");
-  q.push("4");
+  std::pair< int, std::string >& value = stack.emplace(10, "ten");
 
-  auto postfix = matveev::toPostfix(q);
-  long result = matveev::evaluatePostfix(postfix);
-
-  BOOST_CHECK_EQUAL(result, 20);
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.first == 10);
+  BOOST_TEST(value.second == "ten");
+  BOOST_TEST(stack.top().first == 10);
+  BOOST_TEST(stack.top().second == "ten");
 }
 
-BOOST_AUTO_TEST_CASE(parser_gcd)
+BOOST_AUTO_TEST_CASE(queue_emplace_pair)
 {
-  matveev::Queue<std::string> q;
+  matveev::Queue< std::pair< int, std::string > > queue;
 
-  q.push("12");
-  q.push("gcd");
-  q.push("18");
+  std::pair< int, std::string >& first = queue.emplace(1, "one");
+  std::pair< int, std::string >& second = queue.emplace(2, "two");
 
-  auto postfix = matveev::toPostfix(q);
-  long result = matveev::evaluatePostfix(postfix);
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.first == 1);
+  BOOST_TEST(first.second == "one");
+  BOOST_TEST(second.first == 2);
+  BOOST_TEST(second.second == "two");
 
-  BOOST_CHECK_EQUAL(result, 6);
+  BOOST_TEST(queue.front().first == 1);
+  BOOST_TEST(queue.front().second == "one");
+
+  queue.drop();
+
+  BOOST_TEST(queue.front().first == 2);
+  BOOST_TEST(queue.front().second == "two");
 }
 
-BOOST_AUTO_TEST_CASE(parser_complex)
+BOOST_AUTO_TEST_CASE(list_emplace_after_pair)
 {
-  matveev::Queue<std::string> q;
+  matveev::List< std::pair< int, std::string > > list;
 
-  q.push("(");
-  q.push("10");
-  q.push("+");
-  q.push("5");
-  q.push(")");
-  q.push("gcd");
-  q.push("5");
+  matveev::LIter< std::pair< int, std::string > > first = list.emplaceAfter(list.beforeBegin(), 1, "one");
+  matveev::LIter< std::pair< int, std::string > > second = list.emplaceAfter(first, 2, "two");
 
-  auto postfix = matveev::toPostfix(q);
-  long result = matveev::evaluatePostfix(postfix);
+  BOOST_TEST(first->first == 1);
+  BOOST_TEST(first->second == "one");
+  BOOST_TEST(second->first == 2);
+  BOOST_TEST(second->second == "two");
 
-  BOOST_CHECK_EQUAL(result, 5);
+  matveev::LIter< std::pair< int, std::string > > it = list.begin();
+
+  BOOST_TEST(it->first == 1);
+  BOOST_TEST(it->second == "one");
+
+  ++it;
+
+  BOOST_TEST(it->first == 2);
+  BOOST_TEST(it->second == "two");
 }
 
-BOOST_AUTO_TEST_CASE(parser_invalid_expression)
+struct MoveOnlyValue
 {
-  matveev::Queue<std::string> q;
+  MoveOnlyValue():
+    value(0)
+  {}
 
-  q.push("+");
-  q.push("2");
+  explicit MoveOnlyValue(int rhs):
+    value(rhs)
+  {}
 
-  BOOST_CHECK_THROW(
-    matveev::evaluatePostfix(matveev::toPostfix(q)),
-    std::runtime_error
-  );
+  MoveOnlyValue(const MoveOnlyValue&) = delete;
+  MoveOnlyValue& operator=(const MoveOnlyValue&) = delete;
+
+  MoveOnlyValue(MoveOnlyValue&& other) noexcept:
+    value(other.value)
+  {
+    other.value = 0;
+  }
+
+  MoveOnlyValue& operator=(MoveOnlyValue&& other) noexcept
+  {
+    if (this != &other)
+    {
+      value = other.value;
+      other.value = 0;
+    }
+
+    return *this;
+  }
+
+  int value;
+};
+
+BOOST_AUTO_TEST_CASE(stack_emplace_move_only_value)
+{
+  matveev::Stack< MoveOnlyValue > stack;
+
+  MoveOnlyValue& value = stack.emplace(42);
+
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(value.value == 42);
+  BOOST_TEST(stack.top().value == 42);
+}
+
+BOOST_AUTO_TEST_CASE(queue_emplace_move_only_value)
+{
+  matveev::Queue< MoveOnlyValue > queue;
+
+  MoveOnlyValue& first = queue.emplace(10);
+  MoveOnlyValue& second = queue.emplace(20);
+
+  BOOST_TEST(queue.size() == 2);
+  BOOST_TEST(first.value == 10);
+  BOOST_TEST(second.value == 20);
+
+  BOOST_TEST(queue.front().value == 10);
+  queue.drop();
+
+  BOOST_TEST(queue.front().value == 20);
 }

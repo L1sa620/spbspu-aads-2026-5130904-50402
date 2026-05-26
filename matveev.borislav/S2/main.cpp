@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <sstream>
 #include <fstream>
 
 #include "parser.hpp"
@@ -23,8 +22,7 @@ int main(int argc, char* argv[])
     input = &file;
   }
 
-  matveev::Stack<long> results;
-
+  matveev::Stack< long > results;
   std::string line;
 
   while (std::getline(*input, line))
@@ -34,19 +32,11 @@ int main(int argc, char* argv[])
       continue;
     }
 
-    std::stringstream ss(line);
-    std::string token;
-
-    matveev::Queue<std::string> infix;
-
-    while (ss >> token)
-    {
-      infix.push(token);
-    }
+    matveev::Queue< std::string > infix = matveev::splitLine(line);
 
     try
     {
-      auto postfix = matveev::toPostfix(infix);
+      matveev::Queue< std::string > postfix = matveev::toPostfix(infix);
       long result = matveev::evaluatePostfix(postfix);
 
       results.push(result);
@@ -67,7 +57,8 @@ int main(int argc, char* argv[])
       std::cout << " ";
     }
 
-    std::cout << results.drop();
+    std::cout << results.top();
+    results.drop();
     first = false;
   }
 
