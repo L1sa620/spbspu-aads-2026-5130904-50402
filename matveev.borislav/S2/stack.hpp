@@ -4,25 +4,25 @@
 #include "../common/list.hpp"
 #include <stdexcept>
 #include <cstddef>
+#include <utility>
 
 namespace matveev
 {
-
-template<class T>
+template< class T >
 class Stack
 {
 public:
-
   Stack():
+    data_(),
     size_(0)
   {}
 
-  bool empty() const
+  bool empty() const noexcept
   {
     return size_ == 0;
   }
 
-  size_t size() const
+  size_t size() const noexcept
   {
     return size_;
   }
@@ -33,20 +33,23 @@ public:
     ++size_;
   }
 
-  T drop()
+  template< class... Args >
+  T& emplace(Args&&... args)
+  {
+    LIter< T > it = data_.emplaceAfter(data_.beforeBegin(), std::forward< Args >(args)...);
+    ++size_;
+    return *it;
+  }
+
+  void drop()
   {
     if (size_ == 0)
     {
       throw std::runtime_error("stack empty");
     }
 
-    auto it = data_.begin();
-    T value = *it;
-
     data_.removeFront();
     --size_;
-
-    return value;
   }
 
   T& top()
@@ -59,11 +62,20 @@ public:
     return *data_.begin();
   }
 
+  const T& top() const
+  {
+    if (size_ == 0)
+    {
+      throw std::runtime_error("stack empty");
+    }
+
+    return *data_.begin();
+  }
+
 private:
-  List<T> data_;
+  List< T > data_;
   size_t size_;
 };
-
 }
 
 #endif
