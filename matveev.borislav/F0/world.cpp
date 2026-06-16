@@ -96,6 +96,36 @@ void matveev::World::renameInOrder(const std::string& name, const std::string& n
   }
 }
 
+void matveev::World::detachConnection(Location& owner, const std::string& neighbour)
+{
+  LIter< Connection > prev = owner.connections.beforeBegin();
+  LIter< Connection > it = owner.connections.begin();
+
+  while (it != owner.connections.end())
+  {
+    if (it->to == neighbour)
+    {
+      owner.connections.eraseAfter(prev);
+      return;
+    }
+
+    ++prev;
+    ++it;
+  }
+}
+
+void matveev::World::renameConnection(Location& owner, const std::string& old_neighbour, const std::string& new_neighbour)
+{
+  for (LIter< Connection > it = owner.connections.begin(); it != owner.connections.end(); ++it)
+  {
+    if (it->to == old_neighbour)
+    {
+      it->to = new_neighbour;
+      return;
+    }
+  }
+}
+
 void matveev::World::createLocation(const std::string& name)
 {
   if (locations_.has(name))
@@ -110,6 +140,11 @@ void matveev::World::createLocation(const std::string& name)
 void matveev::World::removeLocation(const std::string& name)
 {
   const Location& target = location(name);
+
+  for (LCIter< Connection > it = target.connections.begin(); it != target.connections.end(); ++it)
+  {
+    detachConnection(locationRef(it->to), name);
+  }
 
   for (LCIter< Item > it = target.items.begin(); it != target.items.end(); ++it)
   {
@@ -134,6 +169,11 @@ void matveev::World::renameLocation(const std::string& name, const std::string& 
 
   Location updated = locations_.at(name);
   updated.name = new_name;
+
+  for (LIter< Connection > it = updated.connections.begin(); it != updated.connections.end(); ++it)
+  {
+    renameConnection(locationRef(it->to), name, new_name);
+  }
 
   for (LIter< Item > it = updated.items.begin(); it != updated.items.end(); ++it)
   {
@@ -259,4 +299,66 @@ bool matveev::World::findItem(const std::string& item, std::string& location_out
 
   location_out = itemIndex_.at(item);
   return true;
+}
+
+bool matveev::World::connected(const std::string& first, const std::string& second) const
+{
+  if (!locations_.has(first))
+  {
+    return false;
+  }
+
+  const Location& owner = locations_.at(first);
+
+  for (LCIter< Connection > it = owner.connections.begin(); it != owner.connections.end(); ++it)
+  {
+    if (it->to == second)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void matveev::World::connect(const std::string& first, const std::string& second, unsigned long long cost)
+{
+  if (first == second)
+  {
+    throw std::logic_error("self connection");
+  }
+
+  Location& a = locationRef(first);
+
+  if (!locations_.has(second))
+  {
+    throw std::out_of_range("location not found");
+  }
+
+  if (connected(first, second))
+  {
+    throw std::logic_error("already connected");
+  }
+
+  Location& b = locationRef(second);
+  appendBack(a.connections, Connection(second, cost));
+  appendBack(b.connections, Connection(first, cost));
+}
+
+void matveev::World::disconnect(const std::string& first, const std::string& second)
+{
+  Location& a = locationRef(first);
+
+  if (!locations_.has(second))
+  {
+    throw std::out_of_range("location not found");
+  }
+
+  if (!connected(first, second))
+  {
+    throw std::logic_error("not connected");
+  }
+
+  detachConnection(a, second);
+  detachConnection(locationRef(second), first);
 }

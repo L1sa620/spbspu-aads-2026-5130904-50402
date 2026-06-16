@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -40,6 +41,17 @@ namespace
     for (matveev::LCIter< matveev::Item > it = loc.items.begin(); it != loc.items.end(); ++it)
     {
       result.push_back(it->name);
+    }
+    return result;
+  }
+
+  std::map< std::string, unsigned long long > connections(const matveev::World& world, const std::string& location)
+  {
+    std::map< std::string, unsigned long long > result;
+    const matveev::Location& loc = world.location(location);
+    for (matveev::LCIter< matveev::Connection > it = loc.connections.begin(); it != loc.connections.end(); ++it)
+    {
+      result[it->to] = it->cost;
     }
     return result;
   }
@@ -168,6 +180,43 @@ int main()
     w.renameLocation("a", "x");
     std::string where;
     check(w.findItem("sword", where) && where == "x", "rename-location: item index follows the new name");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("x");
+    w.createLocation("y");
+    w.connect("x", "y", 5);
+    check(connections(w, "x").at("y") == 5 && connections(w, "y").at("x") == 5, "connect: symmetric with cost");
+    check(w.connected("x", "y") && w.connected("y", "x"), "connect: connected both ways");
+    check(throws([&]{ w.connect("x", "x", 1); }), "connect: self-loop throws");
+    check(throws([&]{ w.connect("x", "y", 9); }), "connect: duplicate edge throws");
+    check(throws([&]{ w.connect("x", "ghost", 1); }), "connect: missing endpoint throws");
+
+    w.disconnect("x", "y");
+    check(!w.connected("x", "y") && connections(w, "x").empty() && connections(w, "y").empty(), "disconnect: symmetric removal");
+    check(throws([&]{ w.disconnect("x", "y"); }), "disconnect: missing edge throws");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("hub");
+    w.createLocation("a");
+    w.createLocation("b");
+    w.connect("hub", "a", 1);
+    w.connect("hub", "b", 2);
+    w.removeLocation("hub");
+    check(connections(w, "a").empty() && connections(w, "b").empty(), "remove-location: inbound edges cleaned");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("a");
+    w.createLocation("b");
+    w.connect("a", "b", 5);
+    w.renameLocation("a", "x");
+    check(connections(w, "b").count("x") == 1 && connections(w, "b").count("a") == 0, "rename-location: neighbour edge relabelled");
+    check(connections(w, "x").at("b") == 5, "rename-location: own edge kept");
   }
 
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
