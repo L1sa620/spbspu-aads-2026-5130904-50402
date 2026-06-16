@@ -18,16 +18,31 @@ void appendBack(matveev::List< T >& list, const T& value)
 
   list.insertAfter(prev, value);
 }
+
+bool itemsContain(const matveev::List< matveev::Item >& items, const std::string& name)
+{
+  for (matveev::LCIter< matveev::Item > it = items.begin(); it != items.end(); ++it)
+  {
+    if (it->name == name)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
 }
 
 matveev::World::World():
   locations_(16),
+  itemIndex_(16),
   order_()
 {}
 
 void matveev::World::swap(World& other) noexcept
 {
   locations_.swap(other.locations_);
+  itemIndex_.swap(other.itemIndex_);
   order_.swap(other.order_);
 }
 
@@ -44,6 +59,11 @@ const matveev::Location& matveev::World::location(const std::string& name) const
 const matveev::List< std::string >& matveev::World::order() const noexcept
 {
   return order_;
+}
+
+matveev::Location& matveev::World::locationRef(const std::string& name)
+{
+  return locations_.at(name);
 }
 
 void matveev::World::removeFromOrder(const std::string& name)
@@ -89,9 +109,11 @@ void matveev::World::createLocation(const std::string& name)
 
 void matveev::World::removeLocation(const std::string& name)
 {
-  if (!locations_.has(name))
+  const Location& target = location(name);
+
+  for (LCIter< Item > it = target.items.begin(); it != target.items.end(); ++it)
   {
-    throw std::out_of_range("location not found");
+    itemIndex_.drop(it->name);
   }
 
   removeFromOrder(name);
@@ -113,7 +135,128 @@ void matveev::World::renameLocation(const std::string& name, const std::string& 
   Location updated = locations_.at(name);
   updated.name = new_name;
 
+  for (LIter< Item > it = updated.items.begin(); it != updated.items.end(); ++it)
+  {
+    itemIndex_.at(it->name) = new_name;
+  }
+
   renameInOrder(name, new_name);
   locations_.drop(name);
   locations_.add(new_name, updated);
+}
+
+void matveev::World::clearLocation(const std::string& name)
+{
+  Location& target = locationRef(name);
+
+  for (LIter< Item > it = target.items.begin(); it != target.items.end(); ++it)
+  {
+    itemIndex_.drop(it->name);
+  }
+
+  target.items.clear();
+}
+
+void matveev::World::addItem(const std::string& location, const std::string& item, const std::string& type)
+{
+  Location& target = locationRef(location);
+
+  if (itemIndex_.has(item))
+  {
+    throw std::logic_error("item name already used");
+  }
+
+  appendBack(target.items, Item(item, type));
+  itemIndex_.add(item, location);
+}
+
+void matveev::World::removeItem(const std::string& location, const std::string& item)
+{
+  Location& target = locationRef(location);
+
+  LIter< Item > prev = target.items.beforeBegin();
+  LIter< Item > it = target.items.begin();
+
+  while (it != target.items.end())
+  {
+    if (it->name == item)
+    {
+      target.items.eraseAfter(prev);
+      itemIndex_.drop(item);
+      return;
+    }
+
+    ++prev;
+    ++it;
+  }
+
+  throw std::out_of_range("item not in location");
+}
+
+void matveev::World::renameItem(const std::string& location, const std::string& item, const std::string& new_name)
+{
+  Location& target = locationRef(location);
+
+  if (!itemsContain(target.items, item))
+  {
+    throw std::out_of_range("item not in location");
+  }
+
+  if (itemIndex_.has(new_name))
+  {
+    throw std::logic_error("item name already used");
+  }
+
+  for (LIter< Item > it = target.items.begin(); it != target.items.end(); ++it)
+  {
+    if (it->name == item)
+    {
+      it->name = new_name;
+      break;
+    }
+  }
+
+  itemIndex_.drop(item);
+  itemIndex_.add(new_name, location);
+}
+
+void matveev::World::moveItem(const std::string& item, const std::string& from, const std::string& to)
+{
+  Location& source = locationRef(from);
+
+  if (!locations_.has(to))
+  {
+    throw std::out_of_range("location not found");
+  }
+
+  LIter< Item > prev = source.items.beforeBegin();
+  LIter< Item > it = source.items.begin();
+
+  while (it != source.items.end() && it->name != item)
+  {
+    ++prev;
+    ++it;
+  }
+
+  if (it == source.items.end())
+  {
+    throw std::out_of_range("item not in location");
+  }
+
+  Item moved = *it;
+  source.items.eraseAfter(prev);
+
+  appendBack(locationRef(to).items, moved);
+  itemIndex_.at(item) = to;
+}
+
+bool matveev::World::findItem(const std::string& item, std::string& location_out) const
+{
+  if (!itemIndex_.has(item))
+  {
+    return false;
+  }
+
+  location_out = itemIndex_.at(item);
+  return true;
 }

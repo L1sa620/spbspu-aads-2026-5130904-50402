@@ -33,6 +33,17 @@ namespace
     return result;
   }
 
+  std::vector< std::string > itemNames(const matveev::World& world, const std::string& location)
+  {
+    std::vector< std::string > result;
+    const matveev::Location& loc = world.location(location);
+    for (matveev::LCIter< matveev::Item > it = loc.items.begin(); it != loc.items.end(); ++it)
+    {
+      result.push_back(it->name);
+    }
+    return result;
+  }
+
   template< class F >
   bool throws(F f)
   {
@@ -87,6 +98,76 @@ int main()
     w.createLocation("solo");
     check(w.location("solo").name == "solo", "location: accessor returns the location");
     check(throws([&]{ w.location("ghost"); }), "location: missing throws");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("forest");
+    w.createLocation("cave");
+    w.addItem("forest", "sword", "weapon");
+    w.addItem("forest", "axe", "weapon");
+    check(itemNames(w, "forest") == std::vector< std::string >({ "sword", "axe" }), "add-item: order preserved");
+    check(throws([&]{ w.addItem("cave", "sword", "tool"); }), "add-item: globally duplicate name throws");
+    check(throws([&]{ w.addItem("nowhere", "bow", "weapon"); }), "add-item: missing location throws");
+
+    std::string where;
+    check(w.findItem("sword", where) && where == "forest", "find: locates item globally");
+    check(!w.findItem("ghost", where), "find: missing item returns false");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("a");
+    w.createLocation("b");
+    w.addItem("a", "sword", "weapon");
+
+    w.renameItem("a", "sword", "blade");
+    std::string where;
+    check(w.findItem("blade", where) && where == "a" && !w.findItem("sword", where), "rename-item: index updated");
+    check(throws([&]{ w.renameItem("a", "ghost", "x"); }), "rename-item: missing item throws");
+
+    w.moveItem("blade", "a", "b");
+    check(itemNames(w, "a").empty() && itemNames(w, "b") == std::vector< std::string >({ "blade" }), "move-item: moved between lists");
+    check(w.findItem("blade", where) && where == "b", "move-item: index points to new location");
+    check(throws([&]{ w.moveItem("blade", "a", "b"); }), "move-item: missing source item throws");
+
+    w.removeItem("b", "blade");
+    check(itemNames(w, "b").empty() && !w.findItem("blade", where), "remove-item: gone from list and index");
+    check(throws([&]{ w.removeItem("b", "blade"); }), "remove-item: missing throws");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("a");
+    w.addItem("a", "sword", "weapon");
+    w.addItem("a", "axe", "weapon");
+    w.clearLocation("a");
+    check(itemNames(w, "a").empty(), "clear: items removed");
+    std::string where;
+    check(!w.findItem("sword", where) && !w.findItem("axe", where), "clear: index updated");
+    w.addItem("a", "sword", "weapon");
+    check(w.findItem("sword", where), "clear: name reusable after clear");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("vault");
+    w.addItem("vault", "relic", "treasure");
+    w.removeLocation("vault");
+    std::string where;
+    check(!w.findItem("relic", where), "remove-location: items dropped from index");
+    w.createLocation("other");
+    w.addItem("other", "relic", "treasure");
+    check(w.findItem("relic", where) && where == "other", "remove-location: freed item name reusable");
+  }
+
+  {
+    matveev::World w;
+    w.createLocation("a");
+    w.addItem("a", "sword", "weapon");
+    w.renameLocation("a", "x");
+    std::string where;
+    check(w.findItem("sword", where) && where == "x", "rename-location: item index follows the new name");
   }
 
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";

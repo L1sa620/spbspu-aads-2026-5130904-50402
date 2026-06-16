@@ -61,7 +61,6 @@ namespace
 
 int main()
 {
-  // Базовые add / has / at
   {
     Table t;
     t.add("a", 1);
@@ -74,7 +73,6 @@ int main()
     check(t.at("a") == 1 && t.at("b") == 2 && t.at("c") == 3, "at returns values");
   }
 
-  // Мутация через at
   {
     Table t;
     t.add("x", 10);
@@ -82,7 +80,6 @@ int main()
     check(t.at("x") == 99, "at allows mutation");
   }
 
-  // Дубликат бросает logic_error, at отсутствующего — out_of_range
   {
     Table t;
     t.add("a", 1);
@@ -111,7 +108,6 @@ int main()
     check(threw, "at missing throws out_of_range");
   }
 
-  // drop возвращает значение и удаляет; drop отсутствующего бросает
   {
     Table t;
     t.add("a", 1);
@@ -135,7 +131,6 @@ int main()
     check(threw, "drop missing throws out_of_range");
   }
 
-  // Robin Hood: длинная цепочка коллизий, psl должны быть 0..N-1
   {
     CollidingTable t(64);
     const int count = 20;
@@ -159,7 +154,6 @@ int main()
     check(all_found, "colliding: all keys findable in one chain");
   }
 
-  // Backward-shift: удалить элементы из середины цепочки, остальные должны остаться доступны
   {
     CollidingTable t(64);
     const int count = 30;
@@ -169,7 +163,6 @@ int main()
       t.add("k" + std::to_string(i), i);
     }
 
-    // Удаляем каждый третий
     for (int i = 0; i < count; i += 3)
     {
       int dropped = t.drop("k" + std::to_string(i));
@@ -199,12 +192,10 @@ int main()
     check(survivors_ok, "backward-shift: survivors intact, deleted gone");
     check(t.size() == static_cast< std::size_t >(survivors), "backward-shift: size matches survivors");
 
-    // Повторная вставка после удалений должна работать
     t.add("k0", 1000);
     check(t.at("k0") == 1000, "backward-shift: reinsert after delete");
   }
 
-  // Авто-рост: много вставок, всё доступно, load factor под контролем
   {
     Table t(4);
     const int count = 5000;
@@ -229,7 +220,6 @@ int main()
     check(t.maxProbeLength() < 50, "growth: probe length stays small with good hash");
   }
 
-  // Итераторы: число занятых == size, ключи собираются полностью
   {
     Table t;
     std::vector< std::string > keys = { "alpha", "beta", "gamma", "delta", "epsilon" };
@@ -258,7 +248,6 @@ int main()
     check(mutated == (10 + 11 + 12 + 13 + 14), "iterator: non-const iteration mutates values");
   }
 
-  // Копирование: глубокая копия, независимая от оригинала
   {
     Table a;
     a.add("one", 1);
@@ -274,7 +263,6 @@ int main()
     check(b.size() == 3 && b.at("one") == 111, "copy: copy mutated independently");
   }
 
-  // clear
   {
     Table t;
     t.add("a", 1);
@@ -286,7 +274,6 @@ int main()
     check(t.at("a") == 5, "clear: reusable after clear");
   }
 
-  // Стресс: вставка + удаление половины, проверка консистентности
   {
     Table t;
     const int count = 10000;

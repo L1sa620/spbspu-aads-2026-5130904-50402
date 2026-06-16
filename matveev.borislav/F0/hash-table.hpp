@@ -10,6 +10,7 @@
 
 namespace matveev
 {
+
 template< class Key, class Value >
 struct HashTableItem
 {
