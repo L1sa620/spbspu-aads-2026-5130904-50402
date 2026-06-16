@@ -219,6 +219,34 @@ int main()
     check(connections(w, "x").at("b") == 5, "rename-location: own edge kept");
   }
 
+  {
+    matveev::World w;
+    w.createLocation("A");
+    w.createLocation("B");
+    w.createLocation("C");
+    w.createLocation("D");
+    w.addItem("A", "sword", "weapon");
+    w.addItem("B", "axe", "weapon");
+    w.connect("A", "C", 5);
+    w.connect("B", "C", 3);
+    w.connect("A", "D", 7);
+    w.connect("A", "B", 10);
+
+    w.mergeLocations("M", "A", "B");
+
+    check(w.hasLocation("M") && !w.hasLocation("A") && !w.hasLocation("B"), "merge: a and b consumed, new exists");
+    check(itemNames(w, "M").size() == 2, "merge: items united");
+    std::string where;
+    check(w.findItem("sword", where) && where == "M" && w.findItem("axe", where) && where == "M", "merge: item index points to new");
+    std::map< std::string, unsigned long long > m_conn = connections(w, "M");
+    check(m_conn.size() == 2 && m_conn.at("C") == 3 && m_conn.at("D") == 7, "merge: union of edges, min cost to shared neighbour");
+    check(connections(w, "C").size() == 1 && connections(w, "C").at("M") == 3, "merge: shared neighbour C redirected to new");
+    check(connections(w, "D").size() == 1 && connections(w, "D").at("M") == 7, "merge: neighbour D redirected to new");
+    check(orderVec(w) == std::vector< std::string >({ "C", "D", "M" }), "merge: order updated, new appended");
+    check(throws([&]{ w.mergeLocations("M", "C", "D"); }), "merge: existing target throws");
+    check(throws([&]{ w.mergeLocations("Z", "C", "C"); }), "merge: same operands throw");
+  }
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

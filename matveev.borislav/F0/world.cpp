@@ -362,3 +362,93 @@ void matveev::World::disconnect(const std::string& first, const std::string& sec
   detachConnection(a, second);
   detachConnection(locationRef(second), first);
 }
+
+void matveev::World::mergeLocations(const std::string& new_name, const std::string& first, const std::string& second)
+{
+  if (locations_.has(new_name))
+  {
+    throw std::logic_error("target location already exists");
+  }
+
+  if (first == second)
+  {
+    throw std::logic_error("cannot merge a location with itself");
+  }
+
+  if (!locations_.has(first) || !locations_.has(second))
+  {
+    throw std::out_of_range("location not found");
+  }
+
+  HashTable< std::string, unsigned long long, StringHash, StringEqual > neighbours(16);
+
+  const Location& source_a = locations_.at(first);
+  for (LCIter< Connection > it = source_a.connections.begin(); it != source_a.connections.end(); ++it)
+  {
+    if (it->to == second)
+    {
+      continue;
+    }
+
+    if (neighbours.has(it->to))
+    {
+      unsigned long long current = neighbours.at(it->to);
+      neighbours.at(it->to) = (it->cost < current) ? it->cost : current;
+    }
+    else
+    {
+      neighbours.add(it->to, it->cost);
+    }
+  }
+
+  const Location& source_b = locations_.at(second);
+  for (LCIter< Connection > it = source_b.connections.begin(); it != source_b.connections.end(); ++it)
+  {
+    if (it->to == first)
+    {
+      continue;
+    }
+
+    if (neighbours.has(it->to))
+    {
+      unsigned long long current = neighbours.at(it->to);
+      neighbours.at(it->to) = (it->cost < current) ? it->cost : current;
+    }
+    else
+    {
+      neighbours.add(it->to, it->cost);
+    }
+  }
+
+  Location merged(new_name);
+
+  for (LCIter< Item > it = source_a.items.begin(); it != source_a.items.end(); ++it)
+  {
+    appendBack(merged.items, *it);
+    itemIndex_.at(it->name) = new_name;
+  }
+
+  for (LCIter< Item > it = source_b.items.begin(); it != source_b.items.end(); ++it)
+  {
+    appendBack(merged.items, *it);
+    itemIndex_.at(it->name) = new_name;
+  }
+
+  for (auto it = neighbours.cbegin(); it != neighbours.cend(); ++it)
+  {
+    appendBack(merged.connections, Connection(it->key, it->value));
+
+    Location& neighbour = locationRef(it->key);
+    detachConnection(neighbour, first);
+    detachConnection(neighbour, second);
+    appendBack(neighbour.connections, Connection(new_name, it->value));
+  }
+
+  removeFromOrder(first);
+  removeFromOrder(second);
+  locations_.drop(first);
+  locations_.drop(second);
+
+  locations_.add(new_name, merged);
+  appendBack(order_, new_name);
+}

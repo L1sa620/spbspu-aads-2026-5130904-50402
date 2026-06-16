@@ -26,6 +26,7 @@ public:
   void removeLocation(const std::string& name);
   void renameLocation(const std::string& name, const std::string& new_name);
   void clearLocation(const std::string& name);
+  void mergeLocations(const std::string& new_name, const std::string& first, const std::string& second);
 
   void addItem(const std::string& location, const std::string& item, const std::string& type);
   void removeItem(const std::string& location, const std::string& item);
