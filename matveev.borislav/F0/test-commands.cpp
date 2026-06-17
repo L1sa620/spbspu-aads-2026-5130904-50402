@@ -109,6 +109,25 @@ int main()
     check(exec(w, "clear a b") == "<INVALID COMMAND>\n", "clear: wrong arg count");
   }
 
+  check(run({ "make forest", "add-item forest sword weapon", "show forest" })
+    == "Items: 1\n  sword (weapon)\nConnections: none\n", "add-item: appears in show");
+  check(run({ "make a", "make b", "add-item a sword weapon", "add-item b sword tool" })
+    == "<INVALID COMMAND>\n", "add-item: globally duplicate name is invalid");
+  check(run({ "add-item ghost sword weapon" }) == "Location not found\n", "add-item: missing location");
+  check(run({ "make a", "add-item a sword" }) == "<INVALID COMMAND>\n", "add-item: wrong arg count");
+
+  check(run({ "make a", "add-item a sword weapon", "delete-item a sword", "show a" })
+    == "Items: 0\nConnections: none\n", "delete-item: removed from show");
+  check(run({ "make a", "delete-item a ghost" }) == "<INVALID COMMAND>\n", "delete-item: missing item is invalid");
+  check(run({ "delete-item ghost x" }) == "Location not found\n", "delete-item: missing location");
+
+  check(run({ "make a", "add-item a sword weapon", "rename-item a sword blade", "show a" })
+    == "Items: 1\n  blade (weapon)\nConnections: none\n", "rename-item: name changes in show");
+
+  check(run({ "make a", "make b", "add-item a sword weapon", "move-item sword a b", "show b" })
+    == "Items: 1\n  sword (weapon)\nConnections: none\n", "move-item: appears in destination");
+  check(run({ "make a", "move-item sword a ghost" }) == "Location not found\n", "move-item: missing destination");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

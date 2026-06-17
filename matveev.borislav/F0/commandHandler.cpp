@@ -248,6 +248,140 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     return true;
   }
 
+  if (command == ADD_ITEM_COMMAND)
+  {
+    if (!hasArgCount(tokens, 4))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& location = *it;
+    ++it;
+    const std::string& item = *it;
+    ++it;
+    const std::string& type = *it;
+
+    if (!world.hasLocation(location))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    try
+    {
+      world.addItem(location, item, type);
+    }
+    catch (const std::exception&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == DELETE_ITEM_COMMAND)
+  {
+    if (!hasArgCount(tokens, 3))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& location = *it;
+    ++it;
+    const std::string& item = *it;
+
+    if (!world.hasLocation(location))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    try
+    {
+      world.removeItem(location, item);
+    }
+    catch (const std::exception&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == RENAME_ITEM_COMMAND)
+  {
+    if (!hasArgCount(tokens, 4))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& location = *it;
+    ++it;
+    const std::string& item = *it;
+    ++it;
+    const std::string& new_name = *it;
+
+    if (!world.hasLocation(location))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    try
+    {
+      world.renameItem(location, item, new_name);
+    }
+    catch (const std::exception&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == MOVE_ITEM_COMMAND)
+  {
+    if (!hasArgCount(tokens, 4))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& item = *it;
+    ++it;
+    const std::string& from = *it;
+    ++it;
+    const std::string& to = *it;
+
+    if (!world.hasLocation(from) || !world.hasLocation(to))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    try
+    {
+      world.moveItem(item, from, to);
+    }
+    catch (const std::exception&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
   out << INVALID_COMMAND << '\n';
   return false;
 }
