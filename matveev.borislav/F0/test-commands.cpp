@@ -152,6 +152,15 @@ int main()
   check(run({ "make a", "make b", "disconnect a b" }) == "<INVALID COMMAND>\n", "disconnect: not connected is invalid");
   check(run({ "make a", "disconnect a ghost" }) == "Location not found\n", "disconnect: missing endpoint");
 
+  check(run({ "make a", "make b", "make c", "add-item a sword weapon", "add-item b axe weapon",
+    "connect a c 5", "connect b c 3", "merge m a b", "show m" })
+    == "Items: 2\n  sword (weapon)\n  axe (weapon)\nConnections: c\n", "merge: unites items and edges");
+  check(run({ "make a", "make b", "make c", "merge m a b", "locations" }) == "c, m\n", "merge: consumes operands, appends new");
+  check(run({ "make a", "merge m a ghost" }) == "Location not found\n", "merge: missing operand");
+  check(run({ "make a", "make b", "make c", "merge c a b" }) == "<INVALID COMMAND>\n", "merge: existing target is invalid");
+  check(run({ "make a", "merge m a a" }) == "<INVALID COMMAND>\n", "merge: same operands is invalid");
+  check(run({ "merge m a" }) == "<INVALID COMMAND>\n", "merge: wrong arg count");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

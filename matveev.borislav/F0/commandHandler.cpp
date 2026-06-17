@@ -550,6 +550,40 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     return true;
   }
 
+  if (command == MERGE_COMMAND)
+  {
+    if (!hasArgCount(tokens, 4))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& new_name = *it;
+    ++it;
+    const std::string& first = *it;
+    ++it;
+    const std::string& second = *it;
+
+    if (!world.hasLocation(first) || !world.hasLocation(second))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    try
+    {
+      world.mergeLocations(new_name, first, second);
+    }
+    catch (const std::exception&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
   out << INVALID_COMMAND << '\n';
   return false;
 }
