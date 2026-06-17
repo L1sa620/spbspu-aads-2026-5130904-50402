@@ -128,6 +128,18 @@ int main()
     == "Items: 1\n  sword (weapon)\nConnections: none\n", "move-item: appears in destination");
   check(run({ "make a", "move-item sword a ghost" }) == "Location not found\n", "move-item: missing destination");
 
+  check(run({ "make a", "make b", "add-item a sword weapon", "find sword a b" }) == "a\n", "find: locates item in a listed location");
+  check(run({ "make a", "make b", "add-item a sword weapon", "find sword b" }) == "not found\n", "find: item not in the listed locations");
+  check(run({ "make a", "find ghost a" }) == "not found\n", "find: missing item");
+  check(run({ "make a", "add-item a sword weapon", "find sword a ghost" }) == "Location not found\n", "find: a listed location is missing");
+  check(run({ "find sword" }) == "<INVALID COMMAND>\n", "find: needs at least one location");
+
+  check(run({ "make a", "add-item a sword weapon", "add-item a axe weapon", "add-item a potion tool", "filter a weapon" })
+    == "Type weapon: sword, axe\n", "filter: lists matching items in order");
+  check(run({ "make a", "add-item a sword weapon", "filter a tool" }) == "Type tool: none\n", "filter: no matching items");
+  check(run({ "filter ghost weapon" }) == "Location not found\n", "filter: missing location");
+  check(run({ "filter a" }) == "<INVALID COMMAND>\n", "filter: wrong arg count");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

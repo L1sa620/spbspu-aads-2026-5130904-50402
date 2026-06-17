@@ -85,6 +85,30 @@ void printShow(std::ostream& out, const matveev::World& world, const std::string
 
   out << '\n';
 }
+
+void printFilter(std::ostream& out, const matveev::World& world, const std::string& location, const std::string& type)
+{
+  const matveev::Location& loc = world.location(location);
+
+  out << "Type " << type << ":";
+
+  bool any = false;
+  for (matveev::LCIter< matveev::Item > it = loc.items.begin(); it != loc.items.end(); ++it)
+  {
+    if (it->type == type)
+    {
+      out << (any ? ", " : " ") << it->name;
+      any = true;
+    }
+  }
+
+  if (!any)
+  {
+    out << " none";
+  }
+
+  out << '\n';
+}
 }
 
 bool matveev::executeCommand(std::ostream& out, World& world, const List< std::string >& tokens)
@@ -379,6 +403,77 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
       return false;
     }
 
+    return true;
+  }
+
+  if (command == FIND_COMMAND)
+  {
+    if (countArgs(tokens) < 3)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& item = *it;
+    ++it;
+
+    for (LCIter< std::string > loc = it; loc != tokens.end(); ++loc)
+    {
+      if (!world.hasLocation(*loc))
+      {
+        out << LOCATION_NOT_FOUND << '\n';
+        return false;
+      }
+    }
+
+    std::string item_location;
+    bool found = false;
+
+    if (world.findItem(item, item_location))
+    {
+      for (LCIter< std::string > loc = it; loc != tokens.end(); ++loc)
+      {
+        if (*loc == item_location)
+        {
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (found)
+    {
+      out << item_location << '\n';
+    }
+    else
+    {
+      out << "not found" << '\n';
+    }
+
+    return true;
+  }
+
+  if (command == FILTER_COMMAND)
+  {
+    if (!hasArgCount(tokens, 3))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& location = *it;
+    ++it;
+    const std::string& type = *it;
+
+    if (!world.hasLocation(location))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    printFilter(out, world, location, type);
     return true;
   }
 
