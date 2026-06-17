@@ -3,6 +3,7 @@
 #include "commands.hpp"
 #include "parserUtils.hpp"
 
+#include <cstddef>
 #include <exception>
 #include <ostream>
 
@@ -45,6 +46,40 @@ void printLocations(std::ostream& out, const matveev::World& world)
 
     out << *it;
     first = false;
+  }
+
+  out << '\n';
+}
+
+void printShow(std::ostream& out, const matveev::World& world, const std::string& name)
+{
+  const matveev::Location& loc = world.location(name);
+
+  std::size_t item_count = 0;
+  for (matveev::LCIter< matveev::Item > it = loc.items.begin(); it != loc.items.end(); ++it)
+  {
+    ++item_count;
+  }
+
+  out << "Items: " << item_count << '\n';
+
+  for (matveev::LCIter< matveev::Item > it = loc.items.begin(); it != loc.items.end(); ++it)
+  {
+    out << "  " << it->name << " (" << it->type << ")\n";
+  }
+
+  out << "Connections:";
+
+  bool any = false;
+  for (matveev::LCIter< matveev::Connection > it = loc.connections.begin(); it != loc.connections.end(); ++it)
+  {
+    out << ' ' << it->to;
+    any = true;
+  }
+
+  if (!any)
+  {
+    out << " none";
   }
 
   out << '\n';
@@ -106,6 +141,54 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     }
 
     printLocations(out, world);
+    return true;
+  }
+
+  if (command == SHOW_COMMAND)
+  {
+    if (!hasArgCount(tokens, 2))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& name = *it;
+
+    try
+    {
+      printShow(out, world, name);
+    }
+    catch (const std::exception&)
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == DELETE_COMMAND)
+  {
+    if (!hasArgCount(tokens, 2))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& name = *it;
+
+    try
+    {
+      world.removeLocation(name);
+    }
+    catch (const std::exception&)
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
     return true;
   }
 

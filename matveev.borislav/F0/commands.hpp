@@ -4,6 +4,7 @@
 namespace matveev
 {
 constexpr const char* INVALID_COMMAND = "<INVALID COMMAND>";
+constexpr const char* LOCATION_NOT_FOUND = "Location not found";
 
 constexpr const char* HELP_COMMAND = "help";
 constexpr const char* LOCATIONS_COMMAND = "locations";
