@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <exception>
 #include <ostream>
+#include <stdexcept>
 
 namespace
 {
@@ -182,6 +183,61 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     try
     {
       world.removeLocation(name);
+    }
+    catch (const std::exception&)
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == RENAME_COMMAND)
+  {
+    if (!hasArgCount(tokens, 3))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& name = *it;
+    ++it;
+    const std::string& new_name = *it;
+
+    try
+    {
+      world.renameLocation(name, new_name);
+    }
+    catch (const std::out_of_range&)
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+    catch (const std::logic_error&)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    return true;
+  }
+
+  if (command == CLEAR_COMMAND)
+  {
+    if (!hasArgCount(tokens, 2))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& name = *it;
+
+    try
+    {
+      world.clearLocation(name);
     }
     catch (const std::exception&)
     {

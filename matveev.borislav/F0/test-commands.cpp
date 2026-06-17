@@ -93,6 +93,22 @@ int main()
     check(exec(w, "delete a b") == "<INVALID COMMAND>\n", "delete: wrong arg count");
   }
 
+  check(run({ "make a", "rename a x", "locations" }) == "x\n", "rename: success is silent, name changes");
+  check(run({ "rename ghost y" }) == "Location not found\n", "rename: missing source");
+  check(run({ "make a", "make b", "rename a b" }) == "<INVALID COMMAND>\n", "rename: target name taken is invalid");
+  check(run({ "rename a" }) == "<INVALID COMMAND>\n", "rename: wrong arg count");
+
+  {
+    matveev::World w;
+    w.createLocation("forest");
+    w.addItem("forest", "sword", "weapon");
+    w.addItem("forest", "axe", "weapon");
+    check(exec(w, "clear forest") == "", "clear: success is silent");
+    check(exec(w, "show forest") == "Items: 0\nConnections: none\n", "clear: items removed");
+    check(exec(w, "clear ghost") == "Location not found\n", "clear: missing location");
+    check(exec(w, "clear a b") == "<INVALID COMMAND>\n", "clear: wrong arg count");
+  }
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }
