@@ -140,6 +140,18 @@ int main()
   check(run({ "filter ghost weapon" }) == "Location not found\n", "filter: missing location");
   check(run({ "filter a" }) == "<INVALID COMMAND>\n", "filter: wrong arg count");
 
+  check(run({ "make a", "make b", "connect a b 10", "show a" }) == "Items: 0\nConnections: b\n", "connect: shows neighbour");
+  check(run({ "make a", "make b", "connect a b 10", "show b" }) == "Items: 0\nConnections: a\n", "connect: symmetric in show");
+  check(run({ "make a", "connect a ghost 5" }) == "Location not found\n", "connect: missing endpoint");
+  check(run({ "make a", "connect a a 5" }) == "<INVALID COMMAND>\n", "connect: self-loop is invalid");
+  check(run({ "make a", "make b", "connect a b 5", "connect a b 9" }) == "<INVALID COMMAND>\n", "connect: duplicate edge is invalid");
+  check(run({ "make a", "make b", "connect a b xyz" }) == "<INVALID COMMAND>\n", "connect: non-numeric cost is invalid");
+  check(run({ "connect a b" }) == "<INVALID COMMAND>\n", "connect: wrong arg count");
+
+  check(run({ "make a", "make b", "connect a b 5", "disconnect a b", "show a" }) == "Items: 0\nConnections: none\n", "disconnect: removes neighbour");
+  check(run({ "make a", "make b", "disconnect a b" }) == "<INVALID COMMAND>\n", "disconnect: not connected is invalid");
+  check(run({ "make a", "disconnect a ghost" }) == "Location not found\n", "disconnect: missing endpoint");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }
