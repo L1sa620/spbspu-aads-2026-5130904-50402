@@ -168,6 +168,18 @@ int main()
   check(run({ "make a", "path a ghost" }) == "Location not found\n", "path: missing endpoint");
   check(run({ "path a" }) == "<INVALID COMMAND>\n", "path: wrong arg count");
 
+  check(run({ "make a", "make b", "make c", "make d", "add-item c key tool", "connect a b 1", "connect b c 1", "connect c d 1", "shortest-path a d 1 key" }) == "a => b => c => d (cost 3)\n", "shortest-path: collects an item on the way");
+  check(run({ "make a", "make b", "make c", "make d", "add-item c gem tool", "connect a b 1", "connect b c 1", "connect b d 1", "shortest-path a d 1 gem" }) == "a => b => c => b => d (cost 4)\n", "shortest-path: takes a detour and returns");
+  check(run({ "make a", "make b", "make c", "make d", "add-item b first tool", "add-item c second tool", "connect a b 1", "connect b c 1", "connect c d 1", "shortest-path a d 2 first second" }) == "a => b => c => d (cost 3)\n", "shortest-path: collects two items in order");
+  check(run({ "make a", "make b", "make c", "add-item a key tool", "connect a b 1", "connect b c 1", "shortest-path a c 1 key" }) == "a => b => c (cost 2)\n", "shortest-path: item at the start");
+  check(run({ "make a", "make b", "connect a b 1", "shortest-path a b 1 ghost" }) == "No path\n", "shortest-path: missing item has no route");
+  check(run({ "make a", "make b", "make c", "add-item c key tool", "connect a b 1", "shortest-path a b 1 key" }) == "No path\n", "shortest-path: unreachable item has no route");
+  check(run({ "make a", "make b", "connect a b 5", "shortest-path a b 0" }) == "a => b (cost 5)\n", "shortest-path: zero items is a plain shortest path");
+  check(run({ "make a", "make b", "shortest-path a b 2 onlyone" }) == "<INVALID COMMAND>\n", "shortest-path: count mismatch is invalid");
+  check(run({ "make a", "make b", "shortest-path a b xyz item" }) == "<INVALID COMMAND>\n", "shortest-path: non-numeric count is invalid");
+  check(run({ "make a", "shortest-path a ghost 0" }) == "Location not found\n", "shortest-path: missing endpoint");
+  check(run({ "shortest-path a b" }) == "<INVALID COMMAND>\n", "shortest-path: too few arguments");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

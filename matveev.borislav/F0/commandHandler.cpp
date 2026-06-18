@@ -11,6 +11,21 @@
 
 namespace
 {
+template< class T >
+void appendBack(matveev::List< T >& list, const T& value)
+{
+  matveev::LIter< T > prev = list.beforeBegin();
+  matveev::LIter< T > it = list.begin();
+
+  while (it != list.end())
+  {
+    ++prev;
+    ++it;
+  }
+
+  list.insertAfter(prev, value);
+}
+
 void printHelp(std::ostream& out)
 {
   out << "help\n";
@@ -625,6 +640,59 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     unsigned long long cost = 0;
 
     if (!findShortestPath(world, from, to, path, cost))
+    {
+      out << "No path" << '\n';
+      return false;
+    }
+
+    printPath(out, path, cost);
+    return true;
+  }
+
+  if (command == SHORTEST_PATH_COMMAND)
+  {
+    if (countArgs(tokens) < 4)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& from = *it;
+    ++it;
+    const std::string& to = *it;
+    ++it;
+    const std::string& count_text = *it;
+
+    std::size_t count = 0;
+    if (!parseSize(count_text, count))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    if (countArgs(tokens) != 4 + count)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    if (!world.hasLocation(from) || !world.hasLocation(to))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    List< std::string > items;
+    ++it;
+    for (; it != tokens.end(); ++it)
+    {
+      appendBack(items, *it);
+    }
+
+    List< std::string > path;
+    unsigned long long cost = 0;
+    if (!findItemRoute(world, from, to, items, path, cost))
     {
       out << "No path" << '\n';
       return false;
