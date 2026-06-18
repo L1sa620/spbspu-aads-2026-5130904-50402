@@ -161,6 +161,13 @@ int main()
   check(run({ "make a", "merge m a a" }) == "<INVALID COMMAND>\n", "merge: same operands is invalid");
   check(run({ "merge m a" }) == "<INVALID COMMAND>\n", "merge: wrong arg count");
 
+  check(run({ "make a", "make b", "make c", "connect a b 5", "connect b c 3", "path a c" }) == "a => b => c (cost 8)\n", "path: follows the only route");
+  check(run({ "make a", "make b", "make c", "connect a b 1", "connect b c 1", "connect a c 10", "path a c" }) == "a => b => c (cost 2)\n", "path: picks the cheaper route");
+  check(run({ "make a", "make b", "path a b" }) == "No path\n", "path: no route");
+  check(run({ "make a", "path a a" }) == "a (cost 0)\n", "path: to self is zero cost");
+  check(run({ "make a", "path a ghost" }) == "Location not found\n", "path: missing endpoint");
+  check(run({ "path a" }) == "<INVALID COMMAND>\n", "path: wrong arg count");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

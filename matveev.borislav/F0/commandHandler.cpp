@@ -2,6 +2,7 @@
 
 #include "commands.hpp"
 #include "parserUtils.hpp"
+#include "pathfinding.hpp"
 
 #include <cstddef>
 #include <exception>
@@ -108,6 +109,23 @@ void printFilter(std::ostream& out, const matveev::World& world, const std::stri
   }
 
   out << '\n';
+}
+
+void printPath(std::ostream& out, const matveev::List< std::string >& path, unsigned long long cost)
+{
+  bool first = true;
+  for (matveev::LCIter< std::string > it = path.begin(); it != path.end(); ++it)
+  {
+    if (!first)
+    {
+      out << " => ";
+    }
+
+    out << *it;
+    first = false;
+  }
+
+  out << " (cost " << cost << ")\n";
 }
 }
 
@@ -581,6 +599,38 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
       return false;
     }
 
+    return true;
+  }
+
+  if (command == PATH_COMMAND)
+  {
+    if (!hasArgCount(tokens, 3))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& from = *it;
+    ++it;
+    const std::string& to = *it;
+
+    if (!world.hasLocation(from) || !world.hasLocation(to))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    List< std::string > path;
+    unsigned long long cost = 0;
+
+    if (!findShortestPath(world, from, to, path, cost))
+    {
+      out << "No path" << '\n';
+      return false;
+    }
+
+    printPath(out, path, cost);
     return true;
   }
 
