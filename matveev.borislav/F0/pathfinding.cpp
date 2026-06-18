@@ -23,6 +23,216 @@ void appendBack(matveev::List< T >& list, const T& value)
 
   list.insertAfter(prev, value);
 }
+
+bool solveRoute(const matveev::World& world, const std::string& from, const std::string& to,
+  const matveev::Array< std::string >& targets, const matveev::Array< unsigned long long >& weights,
+  unsigned long long required, matveev::List< std::string >& path_out, unsigned long long& cost_out)
+{
+  const unsigned long long infinity = std::numeric_limits< unsigned long long >::max();
+  const std::size_t none = std::numeric_limits< std::size_t >::max();
+  const std::size_t one = 1;
+
+  if (required == 0)
+  {
+    return matveev::findShortestPath(world, from, to, path_out, cost_out);
+  }
+
+  std::size_t k = targets.size();
+
+  unsigned long long available = 0;
+  for (std::size_t i = 0; i < k; ++i)
+  {
+    available += weights[i];
+  }
+
+  if (available < required)
+  {
+    return false;
+  }
+
+  matveev::Array< unsigned long long > cost_s(k, infinity);
+  matveev::Array< unsigned long long > cost_e(k, infinity);
+  matveev::Array< unsigned long long > cost_t(k * k, infinity);
+
+  for (std::size_t i = 0; i < k; ++i)
+  {
+    matveev::List< std::string > leg;
+    unsigned long long c = 0;
+    if (matveev::findShortestPath(world, from, targets[i], leg, c))
+    {
+      cost_s[i] = c;
+    }
+
+    matveev::List< std::string > leg_e;
+    unsigned long long ce = 0;
+    if (matveev::findShortestPath(world, targets[i], to, leg_e, ce))
+    {
+      cost_e[i] = ce;
+    }
+
+    for (std::size_t j = 0; j < k; ++j)
+    {
+      if (i == j)
+      {
+        cost_t[i * k + j] = 0;
+        continue;
+      }
+
+      matveev::List< std::string > leg_t;
+      unsigned long long ct = 0;
+      if (matveev::findShortestPath(world, targets[i], targets[j], leg_t, ct))
+      {
+        cost_t[i * k + j] = ct;
+      }
+    }
+  }
+
+  std::size_t num_masks = one << k;
+  matveev::Array< unsigned long long > mask_weight(num_masks, 0);
+  for (std::size_t mask = 0; mask < num_masks; ++mask)
+  {
+    unsigned long long w = 0;
+    for (std::size_t i = 0; i < k; ++i)
+    {
+      if ((mask & (one << i)) != 0)
+      {
+        w += weights[i];
+      }
+    }
+
+    mask_weight[mask] = w;
+  }
+
+  matveev::Array< unsigned long long > dp(num_masks * k, infinity);
+  matveev::Array< std::size_t > parent(num_masks * k, none);
+
+  for (std::size_t i = 0; i < k; ++i)
+  {
+    if (cost_s[i] != infinity)
+    {
+      dp[(one << i) * k + i] = cost_s[i];
+    }
+  }
+
+  for (std::size_t mask = 1; mask < num_masks; ++mask)
+  {
+    for (std::size_t i = 0; i < k; ++i)
+    {
+      if ((mask & (one << i)) == 0)
+      {
+        continue;
+      }
+
+      unsigned long long current = dp[mask * k + i];
+      if (current == infinity)
+      {
+        continue;
+      }
+
+      for (std::size_t j = 0; j < k; ++j)
+      {
+        if ((mask & (one << j)) != 0)
+        {
+          continue;
+        }
+
+        unsigned long long edge = cost_t[i * k + j];
+        if (edge == infinity)
+        {
+          continue;
+        }
+
+        std::size_t next_mask = mask | (one << j);
+        unsigned long long candidate = current + edge;
+        if (candidate < dp[next_mask * k + j])
+        {
+          dp[next_mask * k + j] = candidate;
+          parent[next_mask * k + j] = i;
+        }
+      }
+    }
+  }
+
+  unsigned long long best = infinity;
+  std::size_t best_mask = 0;
+  std::size_t best_end = none;
+
+  for (std::size_t mask = 1; mask < num_masks; ++mask)
+  {
+    if (mask_weight[mask] < required)
+    {
+      continue;
+    }
+
+    for (std::size_t i = 0; i < k; ++i)
+    {
+      if (dp[mask * k + i] == infinity || cost_e[i] == infinity)
+      {
+        continue;
+      }
+
+      unsigned long long total = dp[mask * k + i] + cost_e[i];
+      if (total < best)
+      {
+        best = total;
+        best_mask = mask;
+        best_end = i;
+      }
+    }
+  }
+
+  if (best_end == none)
+  {
+    return false;
+  }
+
+  cost_out = best;
+
+  matveev::Array< std::size_t > order;
+  std::size_t mask = best_mask;
+  std::size_t node = best_end;
+  while (true)
+  {
+    order.pushBack(node);
+    std::size_t previous = parent[mask * k + node];
+    if (previous == none)
+    {
+      break;
+    }
+
+    mask ^= (one << node);
+    node = previous;
+  }
+
+  matveev::Array< std::string > sequence;
+  sequence.pushBack(from);
+  for (std::size_t s = order.size(); s-- > 0; )
+  {
+    sequence.pushBack(targets[order[s]]);
+  }
+
+  sequence.pushBack(to);
+
+  for (std::size_t s = 0; s + 1 < sequence.size(); ++s)
+  {
+    matveev::List< std::string > leg;
+    unsigned long long leg_cost = 0;
+    matveev::findShortestPath(world, sequence[s], sequence[s + 1], leg, leg_cost);
+
+    matveev::LIter< std::string > p = leg.begin();
+    if (s != 0 && p != leg.end())
+    {
+      ++p;
+    }
+
+    for (; p != leg.end(); ++p)
+    {
+      appendBack(path_out, *p);
+    }
+  }
+
+  return true;
+}
 }
 
 bool matveev::findShortestPath(const World& world, const std::string& from, const std::string& to,
@@ -110,12 +320,8 @@ bool matveev::findShortestPath(const World& world, const std::string& from, cons
 bool matveev::findItemRoute(const World& world, const std::string& from, const std::string& to,
   const List< std::string >& items, List< std::string >& path_out, unsigned long long& cost_out)
 {
-  const unsigned long long infinity = std::numeric_limits< unsigned long long >::max();
-  const std::size_t none = std::numeric_limits< std::size_t >::max();
-  const std::size_t one = 1;
-
   HashTable< std::string, char, StringHash, StringEqual > seen(16);
-  Array< std::string > target_names;
+  Array< std::string > targets;
 
   for (LCIter< std::string > it = items.begin(); it != items.end(); ++it)
   {
@@ -128,172 +334,38 @@ bool matveev::findItemRoute(const World& world, const std::string& from, const s
     if (!seen.has(location))
     {
       seen.add(location, 0);
-      target_names.pushBack(location);
+      targets.pushBack(location);
     }
   }
 
-  std::size_t m = target_names.size();
+  Array< unsigned long long > weights(targets.size(), 1);
+  return solveRoute(world, from, to, targets, weights, targets.size(), path_out, cost_out);
+}
 
-  if (m == 0)
+bool matveev::findTypeRoute(const World& world, const std::string& from, const std::string& to,
+  std::size_t count, const std::string& type, List< std::string >& path_out, unsigned long long& cost_out)
+{
+  Array< std::string > targets;
+  Array< unsigned long long > weights;
+
+  for (LCIter< std::string > it = world.order().begin(); it != world.order().end(); ++it)
   {
-    return findShortestPath(world, from, to, path_out, cost_out);
-  }
-
-  Array< unsigned long long > cost_s(m, infinity);
-  Array< unsigned long long > cost_e(m, infinity);
-  Array< unsigned long long > cost_t(m * m, infinity);
-
-  for (std::size_t i = 0; i < m; ++i)
-  {
-    List< std::string > leg;
-    unsigned long long c = 0;
-    if (findShortestPath(world, from, target_names[i], leg, c))
+    const Location& loc = world.location(*it);
+    unsigned long long here = 0;
+    for (LCIter< Item > item = loc.items.begin(); item != loc.items.end(); ++item)
     {
-      cost_s[i] = c;
-    }
-
-    List< std::string > leg_e;
-    unsigned long long ce = 0;
-    if (findShortestPath(world, target_names[i], to, leg_e, ce))
-    {
-      cost_e[i] = ce;
-    }
-
-    for (std::size_t j = 0; j < m; ++j)
-    {
-      if (i == j)
+      if (item->type == type)
       {
-        cost_t[i * m + j] = 0;
-        continue;
-      }
-
-      List< std::string > leg_t;
-      unsigned long long ct = 0;
-      if (findShortestPath(world, target_names[i], target_names[j], leg_t, ct))
-      {
-        cost_t[i * m + j] = ct;
+        ++here;
       }
     }
-  }
 
-  std::size_t num_masks = one << m;
-  Array< unsigned long long > dp(num_masks * m, infinity);
-  Array< std::size_t > parent(num_masks * m, none);
-
-  for (std::size_t i = 0; i < m; ++i)
-  {
-    if (cost_s[i] != infinity)
+    if (here > 0)
     {
-      dp[(one << i) * m + i] = cost_s[i];
+      targets.pushBack(*it);
+      weights.pushBack(here);
     }
   }
 
-  for (std::size_t mask = 1; mask < num_masks; ++mask)
-  {
-    for (std::size_t i = 0; i < m; ++i)
-    {
-      if ((mask & (one << i)) == 0)
-      {
-        continue;
-      }
-
-      unsigned long long current = dp[mask * m + i];
-      if (current == infinity)
-      {
-        continue;
-      }
-
-      for (std::size_t j = 0; j < m; ++j)
-      {
-        if ((mask & (one << j)) != 0)
-        {
-          continue;
-        }
-
-        unsigned long long edge = cost_t[i * m + j];
-        if (edge == infinity)
-        {
-          continue;
-        }
-
-        std::size_t next_mask = mask | (one << j);
-        unsigned long long candidate = current + edge;
-        if (candidate < dp[next_mask * m + j])
-        {
-          dp[next_mask * m + j] = candidate;
-          parent[next_mask * m + j] = i;
-        }
-      }
-    }
-  }
-
-  std::size_t full = num_masks - 1;
-  unsigned long long best = infinity;
-  std::size_t best_end = none;
-
-  for (std::size_t i = 0; i < m; ++i)
-  {
-    if (dp[full * m + i] == infinity || cost_e[i] == infinity)
-    {
-      continue;
-    }
-
-    unsigned long long total = dp[full * m + i] + cost_e[i];
-    if (total < best)
-    {
-      best = total;
-      best_end = i;
-    }
-  }
-
-  if (best_end == none)
-  {
-    return false;
-  }
-
-  cost_out = best;
-
-  Array< std::size_t > order;
-  std::size_t mask = full;
-  std::size_t node = best_end;
-  while (true)
-  {
-    order.pushBack(node);
-    std::size_t previous = parent[mask * m + node];
-    if (previous == none)
-    {
-      break;
-    }
-
-    mask ^= (one << node);
-    node = previous;
-  }
-
-  Array< std::string > sequence;
-  sequence.pushBack(from);
-  for (std::size_t k = order.size(); k-- > 0; )
-  {
-    sequence.pushBack(target_names[order[k]]);
-  }
-  sequence.pushBack(to);
-
-  for (std::size_t k = 0; k + 1 < sequence.size(); ++k)
-  {
-    List< std::string > leg;
-    unsigned long long leg_cost = 0;
-    findShortestPath(world, sequence[k], sequence[k + 1], leg, leg_cost);
-
-    LIter< std::string > p = leg.begin();
-    if (k != 0 && p != leg.end())
-    {
-      ++p;
-    }
-
-    for (; p != leg.end(); ++p)
-    {
-      appendBack(path_out, *p);
-    }
-  }
-
-  return true;
+  return solveRoute(world, from, to, targets, weights, count, path_out, cost_out);
 }

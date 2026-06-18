@@ -702,6 +702,48 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     return true;
   }
 
+  if (command == COLLECT_COMMAND)
+  {
+    if (!hasArgCount(tokens, 5))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    const std::string& from = *it;
+    ++it;
+    const std::string& to = *it;
+    ++it;
+    const std::string& count_text = *it;
+    ++it;
+    const std::string& type = *it;
+
+    std::size_t count = 0;
+    if (!parseSize(count_text, count))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    if (!world.hasLocation(from) || !world.hasLocation(to))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
+      return false;
+    }
+
+    List< std::string > path;
+    unsigned long long cost = 0;
+    if (!findTypeRoute(world, from, to, count, type, path, cost))
+    {
+      out << "No path" << '\n';
+      return false;
+    }
+
+    printPath(out, path, cost);
+    return true;
+  }
+
   out << INVALID_COMMAND << '\n';
   return false;
 }

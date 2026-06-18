@@ -180,6 +180,19 @@ int main()
   check(run({ "make a", "shortest-path a ghost 0" }) == "Location not found\n", "shortest-path: missing endpoint");
   check(run({ "shortest-path a b" }) == "<INVALID COMMAND>\n", "shortest-path: too few arguments");
 
+  check(run({ "make a", "make b", "make c", "make d", "add-item c sword weapon", "connect a b 1", "connect b c 1", "connect c d 1", "collect a d 1 weapon" }) == "a => b => c => d (cost 3)\n", "collect: gathers one of a type en route");
+  check(run({ "make a", "make b", "make c", "make d", "add-item b sword weapon", "add-item c axe weapon", "connect a b 1", "connect b c 1", "connect c d 1", "collect a d 2 weapon" }) == "a => b => c => d (cost 3)\n", "collect: gathers from two locations");
+  check(run({ "make a", "make b", "make c", "add-item a sword weapon", "connect a b 1", "connect b c 1", "collect a c 1 weapon" }) == "a => b => c (cost 2)\n", "collect: start location already satisfies the count");
+  check(run({ "make a", "make b", "make c", "add-item b sword weapon", "add-item b axe weapon", "connect a b 1", "connect b c 1", "collect a c 2 weapon" }) == "a => b => c (cost 2)\n", "collect: one location can supply the whole count");
+  check(run({ "make a", "make b", "collect a b 1 weapon extra" }) == "<INVALID COMMAND>\n", "collect: extra argument is invalid");
+  check(run({ "make a", "make b", "make d", "make x", "add-item b sword weapon", "add-item x relic weapon", "connect a b 1", "connect b d 1", "connect a x 100", "connect x d 100", "collect a d 1 weapon" }) == "a => b => d (cost 2)\n", "collect: picks the cheapest sufficient subset");
+  check(run({ "make a", "make b", "make c", "make d", "add-item c sword weapon", "connect a b 1", "connect b c 1", "connect b d 1", "collect a d 1 weapon" }) == "a => b => c => b => d (cost 4)\n", "collect: detours for the type and returns");
+  check(run({ "make a", "make b", "make c", "add-item b sword weapon", "connect a b 1", "connect b c 1", "collect a c 5 weapon" }) == "No path\n", "collect: not enough items in the world");
+  check(run({ "make a", "make b", "connect a b 1", "collect a b 1 weapon" }) == "No path\n", "collect: type absent has no route");
+  check(run({ "make a", "make b", "connect a b 5", "collect a b 0 weapon" }) == "a => b (cost 5)\n", "collect: zero count is a plain shortest path");
+  check(run({ "make a", "make b", "collect a b xyz weapon" }) == "<INVALID COMMAND>\n", "collect: non-numeric count is invalid");
+  check(run({ "make a", "collect a ghost 1 weapon" }) == "Location not found\n", "collect: missing endpoint");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }
