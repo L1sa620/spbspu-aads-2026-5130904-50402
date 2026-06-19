@@ -72,8 +72,8 @@ int main()
     w.addItem("forest", "sword", "weapon");
     w.addItem("forest", "axe", "weapon");
     w.connect("forest", "dungeon", 10);
-    check(exec(w, "show forest") == "Items: 2\n  sword (weapon)\n  axe (weapon)\nConnections: dungeon\n", "show: full format");
-    check(exec(w, "show dungeon") == "Items: 0\nConnections: forest\n", "show: no items but a connection");
+    check(exec(w, "show forest") == "Items: 2\n  sword (weapon)\n  axe (weapon)\nConnections: dungeon (10)\n", "show: full format");
+    check(exec(w, "show dungeon") == "Items: 0\nConnections: forest (10)\n", "show: no items but a connection");
   }
 
   {
@@ -143,8 +143,8 @@ int main()
   check(run({ "filter ghost weapon" }) == "Location not found\n", "filter: missing location");
   check(run({ "filter a" }) == "<INVALID COMMAND>\n", "filter: wrong arg count");
 
-  check(run({ "make a", "make b", "connect a b 10", "show a" }) == "Items: 0\nConnections: b\n", "connect: shows neighbour");
-  check(run({ "make a", "make b", "connect a b 10", "show b" }) == "Items: 0\nConnections: a\n", "connect: symmetric in show");
+  check(run({ "make a", "make b", "connect a b 10", "show a" }) == "Items: 0\nConnections: b (10)\n", "connect: shows neighbour");
+  check(run({ "make a", "make b", "connect a b 10", "show b" }) == "Items: 0\nConnections: a (10)\n", "connect: symmetric in show");
   check(run({ "make a", "connect a ghost 5" }) == "Location not found\n", "connect: missing endpoint");
   check(run({ "make a", "connect a ghost xyz" }) == "<INVALID COMMAND>\n", "connect: bad cost outranks missing location");
   check(run({ "make a", "connect a a 5" }) == "<INVALID COMMAND>\n", "connect: self-loop is invalid");
@@ -158,7 +158,7 @@ int main()
 
   check(run({ "make a", "make b", "make c", "add-item a sword weapon", "add-item b axe weapon",
     "connect a c 5", "connect b c 3", "merge m a b", "show m" })
-    == "Items: 2\n  sword (weapon)\n  axe (weapon)\nConnections: c\n", "merge: unites items and edges");
+    == "Items: 2\n  sword (weapon)\n  axe (weapon)\nConnections: c (3)\n", "merge: unites items and edges");
   check(run({ "make a", "make b", "make c", "merge m a b", "locations" }) == "c, m\n", "merge: consumes operands, appends new");
   check(run({ "make a", "merge m a ghost" }) == "Location not found\n", "merge: missing operand");
   check(run({ "make a", "make b", "make c", "merge c a b" }) == "<INVALID COMMAND>\n", "merge: existing target is invalid");

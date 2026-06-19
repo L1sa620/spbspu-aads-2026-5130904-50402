@@ -90,7 +90,7 @@ void printShow(std::ostream& out, const matveev::World& world, const std::string
   bool any = false;
   for (matveev::LCIter< matveev::Connection > it = loc.connections.begin(); it != loc.connections.end(); ++it)
   {
-    out << ' ' << it->to;
+    out << ' ' << it->to << " (" << it->cost << ")";
     any = true;
   }
 
