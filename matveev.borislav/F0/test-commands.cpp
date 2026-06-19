@@ -146,6 +146,7 @@ int main()
   check(run({ "make a", "make b", "connect a b 10", "show a" }) == "Items: 0\nConnections: b\n", "connect: shows neighbour");
   check(run({ "make a", "make b", "connect a b 10", "show b" }) == "Items: 0\nConnections: a\n", "connect: symmetric in show");
   check(run({ "make a", "connect a ghost 5" }) == "Location not found\n", "connect: missing endpoint");
+  check(run({ "make a", "connect a ghost xyz" }) == "<INVALID COMMAND>\n", "connect: bad cost outranks missing location");
   check(run({ "make a", "connect a a 5" }) == "<INVALID COMMAND>\n", "connect: self-loop is invalid");
   check(run({ "make a", "make b", "connect a b 5", "connect a b 9" }) == "<INVALID COMMAND>\n", "connect: duplicate edge is invalid");
   check(run({ "make a", "make b", "connect a b xyz" }) == "<INVALID COMMAND>\n", "connect: non-numeric cost is invalid");

@@ -525,16 +525,16 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     ++it;
     const std::string& cost_text = *it;
 
-    if (!world.hasLocation(first) || !world.hasLocation(second))
-    {
-      out << LOCATION_NOT_FOUND << '\n';
-      return false;
-    }
-
     unsigned long long cost = 0;
     if (!parseUnsignedLongLong(cost_text, cost))
     {
       out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    if (!world.hasLocation(first) || !world.hasLocation(second))
+    {
+      out << LOCATION_NOT_FOUND << '\n';
       return false;
     }
 
