@@ -127,6 +127,9 @@ int main()
   check(run({ "make a", "make b", "add-item a sword weapon", "move-item sword a b", "show b" })
     == "Items: 1\n  sword (weapon)\nConnections: none\n", "move-item: appears in destination");
   check(run({ "make a", "move-item sword a ghost" }) == "Location not found\n", "move-item: missing destination");
+  check(run({ "make a", "add-item a x t", "add-item a y t", "move-item x a a", "show a" })
+    == "Items: 2\n  x (t)\n  y (t)\nConnections: none\n", "move-item: same source and destination keeps order");
+  check(run({ "make a", "move-item ghost a a" }) == "<INVALID COMMAND>\n", "move-item: same place but missing item is invalid");
 
   check(run({ "make a", "make b", "add-item a sword weapon", "find sword a b" }) == "a\n", "find: locates item in a listed location");
   check(run({ "make a", "make b", "add-item a sword weapon", "find sword b" }) == "not found\n", "find: item not in the listed locations");

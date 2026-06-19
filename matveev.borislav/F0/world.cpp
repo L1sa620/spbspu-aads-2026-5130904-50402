@@ -283,6 +283,11 @@ void matveev::World::moveItem(const std::string& item, const std::string& from, 
     throw std::out_of_range("item not in location");
   }
 
+  if (from == to)
+  {
+    return;
+  }
+
   Item moved = *it;
   source.items.eraseAfter(prev);
 
@@ -380,7 +385,8 @@ void matveev::World::mergeLocations(const std::string& new_name, const std::stri
     throw std::out_of_range("location not found");
   }
 
-  HashTable< std::string, unsigned long long, StringHash, StringEqual > neighbours(16);
+  using NeighbourCosts = HashTable< std::string, unsigned long long, StringHash, StringEqual >;
+  NeighbourCosts neighbours(16);
 
   const Location& source_a = locations_.at(first);
   for (LCIter< Connection > it = source_a.connections.begin(); it != source_a.connections.end(); ++it)
@@ -434,7 +440,7 @@ void matveev::World::mergeLocations(const std::string& new_name, const std::stri
     itemIndex_.at(it->name) = new_name;
   }
 
-  for (auto it = neighbours.cbegin(); it != neighbours.cend(); ++it)
+  for (NeighbourCosts::ConstIterator it = neighbours.cbegin(); it != neighbours.cend(); ++it)
   {
     appendBack(merged.connections, Connection(it->key, it->value));
 
