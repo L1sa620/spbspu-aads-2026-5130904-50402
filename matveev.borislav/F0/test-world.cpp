@@ -139,7 +139,8 @@ int main()
     check(throws([&]{ w.renameItem("a", "ghost", "x"); }), "rename-item: missing item throws");
 
     w.moveItem("blade", "a", "b");
-    check(itemNames(w, "a").empty() && itemNames(w, "b") == std::vector< std::string >({ "blade" }), "move-item: moved between lists");
+    check(itemNames(w, "a").empty() && itemNames(w, "b") == std::vector< std::string >({ "blade" }),
+      "move-item: moved between lists");
     check(w.findItem("blade", where) && where == "b", "move-item: index points to new location");
     check(throws([&]{ w.moveItem("blade", "a", "b"); }), "move-item: missing source item throws");
 
@@ -194,7 +195,8 @@ int main()
     check(throws([&]{ w.connect("x", "ghost", 1); }), "connect: missing endpoint throws");
 
     w.disconnect("x", "y");
-    check(!w.connected("x", "y") && connections(w, "x").empty() && connections(w, "y").empty(), "disconnect: symmetric removal");
+    check(!w.connected("x", "y") && connections(w, "x").empty() && connections(w, "y").empty(),
+      "disconnect: symmetric removal");
     check(throws([&]{ w.disconnect("x", "y"); }), "disconnect: missing edge throws");
   }
 
@@ -215,7 +217,8 @@ int main()
     w.createLocation("b");
     w.connect("a", "b", 5);
     w.renameLocation("a", "x");
-    check(connections(w, "b").count("x") == 1 && connections(w, "b").count("a") == 0, "rename-location: neighbour edge relabelled");
+    check(connections(w, "b").count("x") == 1 && connections(w, "b").count("a") == 0,
+      "rename-location: neighbour edge relabelled");
     check(connections(w, "x").at("b") == 5, "rename-location: own edge kept");
   }
 
@@ -237,10 +240,13 @@ int main()
     check(w.hasLocation("M") && !w.hasLocation("A") && !w.hasLocation("B"), "merge: a and b consumed, new exists");
     check(itemNames(w, "M").size() == 2, "merge: items united");
     std::string where;
-    check(w.findItem("sword", where) && where == "M" && w.findItem("axe", where) && where == "M", "merge: item index points to new");
+    check(w.findItem("sword", where) && where == "M" && w.findItem("axe", where) && where == "M",
+      "merge: item index points to new");
     std::map< std::string, unsigned long long > m_conn = connections(w, "M");
-    check(m_conn.size() == 2 && m_conn.at("C") == 3 && m_conn.at("D") == 7, "merge: union of edges, min cost to shared neighbour");
-    check(connections(w, "C").size() == 1 && connections(w, "C").at("M") == 3, "merge: shared neighbour C redirected to new");
+    check(m_conn.size() == 2 && m_conn.at("C") == 3 && m_conn.at("D") == 7,
+      "merge: union of edges, min cost to shared neighbour");
+    check(connections(w, "C").size() == 1 && connections(w, "C").at("M") == 3,
+      "merge: shared neighbour C redirected to new");
     check(connections(w, "D").size() == 1 && connections(w, "D").at("M") == 7, "merge: neighbour D redirected to new");
     check(orderVec(w) == std::vector< std::string >({ "C", "D", "M" }), "merge: order updated, new appended");
     check(throws([&]{ w.mergeLocations("M", "C", "D"); }), "merge: existing target throws");

@@ -114,7 +114,8 @@ void matveev::World::detachConnection(Location& owner, const std::string& neighb
   }
 }
 
-void matveev::World::renameConnection(Location& owner, const std::string& old_neighbour, const std::string& new_neighbour)
+void matveev::World::renameConnection(Location& owner, const std::string& old_neighbour,
+  const std::string& new_neighbour)
 {
   for (LIter< Connection > it = owner.connections.begin(); it != owner.connections.end(); ++it)
   {
