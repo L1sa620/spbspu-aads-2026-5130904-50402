@@ -243,6 +243,16 @@ int main()
     "collect: non-numeric count is invalid");
   check(run({ "make a", "collect a ghost 1 weapon" }) == "Location not found\n", "collect: missing endpoint");
 
+  check(run({ "make a", "make b", "connect a b 5", "add-item a sword weapon", "save /tmp/gameworld_rt.txt" }) == "",
+    "save: writes a reconstruction script silently");
+  check(run({ "load /tmp/gameworld_rt.txt", "locations" }) == "a, b\n", "load: rebuilds locations in order");
+  check(run({ "load /tmp/gameworld_rt.txt", "show a" }) == "Items: 1\n  sword (weapon)\nConnections: b (5)\n",
+    "load: rebuilds items and edges");
+  check(run({ "load /tmp/gameworld_rt.txt", "find sword a" }) == "a\n", "load: item index is rebuilt");
+  check(run({ "load /tmp/gameworld_missing_xyz.txt" }) == "<INVALID COMMAND>\n", "load: missing file is invalid");
+  check(run({ "save" }) == "<INVALID COMMAND>\n", "save: wrong arg count");
+  check(run({ "load" }) == "<INVALID COMMAND>\n", "load: wrong arg count");
+
   std::cout << "\nALL " << passed << " CHECKS PASSED\n";
   return 0;
 }

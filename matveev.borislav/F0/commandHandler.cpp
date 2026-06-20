@@ -1,13 +1,17 @@
 #include "commandHandler.hpp"
 
 #include "commands.hpp"
+#include "hash-table.hpp"
+#include "hashFunctions.hpp"
 #include "parserUtils.hpp"
 #include "pathfinding.hpp"
 
 #include <cstddef>
 #include <exception>
+#include <fstream>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 
 namespace
 {
@@ -47,6 +51,8 @@ void printHelp(std::ostream& out)
   out << "path <from> <to>\n";
   out << "shortest-path <from> <to> <count> <item>...\n";
   out << "collect <from> <to> <count> <type>\n";
+  out << "save <file>\n";
+  out << "load <file>\n";
 }
 
 void printLocations(std::ostream& out, const matveev::World& world)
@@ -141,6 +147,38 @@ void printPath(std::ostream& out, const matveev::List< std::string >& path, unsi
   }
 
   out << " (cost " << cost << ")\n";
+}
+
+void writeWorld(std::ostream& out, const matveev::World& world)
+{
+  for (matveev::LCIter< std::string > name = world.order().begin(); name != world.order().end(); ++name)
+  {
+    out << "make " << *name << '\n';
+  }
+
+  for (matveev::LCIter< std::string > name = world.order().begin(); name != world.order().end(); ++name)
+  {
+    const matveev::Location& loc = world.location(*name);
+    for (matveev::LCIter< matveev::Item > item = loc.items.begin(); item != loc.items.end(); ++item)
+    {
+      out << "add-item " << *name << ' ' << item->name << ' ' << item->type << '\n';
+    }
+  }
+
+  matveev::HashTable< std::string, char, matveev::StringHash, matveev::StringEqual > done(16);
+  for (matveev::LCIter< std::string > name = world.order().begin(); name != world.order().end(); ++name)
+  {
+    const matveev::Location& loc = world.location(*name);
+    for (matveev::LCIter< matveev::Connection > edge = loc.connections.begin(); edge != loc.connections.end(); ++edge)
+    {
+      if (!done.has(edge->to))
+      {
+        out << "connect " << *name << ' ' << edge->to << ' ' << edge->cost << '\n';
+      }
+    }
+
+    done.add(*name, 0);
+  }
 }
 }
 
@@ -741,6 +779,52 @@ bool matveev::executeCommand(std::ostream& out, World& world, const List< std::s
     }
 
     printPath(out, path, cost);
+    return true;
+  }
+
+  if (command == SAVE_COMMAND)
+  {
+    if (!hasArgCount(tokens, 2))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    std::ofstream file(*it);
+    if (!file)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    writeWorld(file, world);
+    return true;
+  }
+
+  if (command == LOAD_COMMAND)
+  {
+    if (!hasArgCount(tokens, 2))
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    ++it;
+    std::ifstream file(*it);
+    if (!file)
+    {
+      out << INVALID_COMMAND << '\n';
+      return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+      List< std::string > line_tokens = splitLine(line);
+      executeCommand(out, world, line_tokens);
+    }
+
     return true;
   }
 

@@ -25,6 +25,8 @@ constexpr const char* DISCONNECT_COMMAND = "disconnect";
 constexpr const char* PATH_COMMAND = "path";
 constexpr const char* SHORTEST_PATH_COMMAND = "shortest-path";
 constexpr const char* COLLECT_COMMAND = "collect";
+constexpr const char* SAVE_COMMAND = "save";
+constexpr const char* LOAD_COMMAND = "load";
 }
 
 #endif
